@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Enable scrolling and prevent pull-to-refresh */
+html, body {
+  overscroll-behavior-y: contain;
+  height: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* App layout */
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4rem;
+  padding-top: env(safe-area-inset-top, 1rem);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 50;
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4rem;
+  padding-bottom: env(safe-area-inset-bottom, 1rem);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 50;
+}
+
+/* Main content area */
+main {
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Movie card container */
+.movie-card-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(85vw, 380px);
+  height: min(70vh, 600px);
+  margin: auto;
+}
+
+/* Watchlist view */
+.watchlist-view {
+  padding-top: 1rem;
+  padding-bottom: 5rem;
+  height: calc(100vh - 8rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Performance optimizations */
+.will-change-transform {
+  will-change: transform;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  perspective: 1000px;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .movie-card-container {
+    width: 82vw;
+    height: 65vh;
+  }
+
+  .app-header {
+    height: 3.5rem;
+  }
+
+  .bottom-nav {
+    height: 3.5rem;
+  }
+
+  main {
+    padding-top: 3.5rem;
+    padding-bottom: 3.5rem;
+  }
+}
