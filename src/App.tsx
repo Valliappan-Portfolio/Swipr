@@ -6,10 +6,10 @@ import { Onboarding } from './components/Onboarding';
 import { Settings } from './components/Settings';
 import { WatchlistView } from './components/WatchlistView';
 import { SurpriseMe } from './components/SurpriseMe';
-import { Recommendations } from './components/Recommendations';
+import { Auth } from './components/Auth';
 import { getMovies, getTVSeries } from './lib/tmdb';
 import type { Movie, MovieActionType, UserPreferences, ViewType } from './types';
-import { supabase, loadExistingPreferences } from './lib/supabase';
+import { supabase } from './lib/supabase';
 
 const gradients = [
   'from-slate-900 via-teal-900 to-slate-900',
@@ -24,8 +24,7 @@ const gradients = [
 
 function App() {
   const [showHomePage, setShowHomePage] = useState(() => {
-    // Check if user has seen homepage and has no existing preferences
-    return !localStorage.getItem('hasSeenHomepage') || !localStorage.getItem('preferenceId');
+    return !localStorage.getItem('hasSeenHomepage');
   });
   const [movies, setMovies] = useState<Movie[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -35,21 +34,26 @@ function App() {
   const [currentGradient, setCurrentGradient] = useState(0);
   const [currentView, setCurrentView] = useState<ViewType>('swipe');
   const [showSurpriseMe, setShowSurpriseMe] = useState(false);
-  const [preferenceId, setPreferenceId] = useState<string | null>(null);
   const [seenMovies, setSeenMovies] = useState<Set<number>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [unwatchedMovies, setUnwatchedMovies] = useState<Movie[]>([]);
+  const [user, setUser] = useState(null);
 
-  // Load existing preferences on mount
   useEffect(() => {
-    const loadPreferences = async () => {
-      const savedPreferences = await loadExistingPreferences();
-      if (savedPreferences) {
-        setUserProfile(savedPreferences);
-      }
-    };
-    loadPreferences();
+    if (!supabase) return;
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -70,20 +74,29 @@ function App() {
       const { preferences } = userProfile;
       
       if (preferences.contentType === 'movies' || preferences.contentType === 'both') {
-        const movieResponse = await getMovies(page, preferences.languages, preferences.genres);
+        const movieResponse = await getMovies(
+          page, 
+          preferences.languages, 
+          preferences.genres,
+          preferences.yearRange
+        );
         if (movieResponse.results) {
           allContent = [...allContent, ...movieResponse.results];
         }
       }
       
       if (preferences.contentType === 'series' || preferences.contentType === 'both') {
-        const seriesResponse = await getTVSeries(page, preferences.languages, preferences.genres);
+        const seriesResponse = await getTVSeries(
+          page,
+          preferences.languages,
+          preferences.genres,
+          preferences.yearRange
+        );
         if (seriesResponse.results) {
           allContent = [...allContent, ...seriesResponse.results];
         }
       }
 
-      // Filter out seen movies and null/undefined values
       const newContent = allContent
         .filter(item => item && item.id && !seenMovies.has(item.id))
         .filter(item => item.posterPath);
@@ -92,10 +105,9 @@ function App() {
         return await fetchContent(page + 1);
       }
 
-      const sortedContent = newContent.sort(() => Math.random() - 0.5);
-      setMovies(prev => [...prev, ...sortedContent]);
+      setMovies(prev => [...prev, ...newContent]);
       
-      return sortedContent.length > 0;
+      return newContent.length > 0;
     } catch (error) {
       console.error('Error fetching content:', error);
       setError('Failed to load movies. Please try again.');
@@ -129,14 +141,12 @@ function App() {
     
     setCurrentGradient(prev => (prev + 1) % gradients.length);
 
-    if (supabase && preferenceId) {
+    if (supabase && user) {
       try {
-        await supabase.from('anonymous_actions').insert({
-          preference_id: preferenceId,
+        await supabase.from('movie_actions').insert({
+          user_id: user.id,
           movie_id: currentMovie.id,
-          action: action,
-          genres: currentMovie.genres,
-          language: currentMovie.language
+          action: action
         });
 
         if (action === 'unwatched') {
@@ -162,56 +172,19 @@ function App() {
   const handleOnboardingComplete = async (name: string, preferences: UserPreferences) => {
     const profile = { name, preferences };
     setUserProfile(profile);
-
-    if (supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('anonymous_preferences')
-          .insert({
-            name: name,
-            languages: preferences.languages,
-            content_type: preferences.contentType,
-            series_type: preferences.seriesType,
-            genres: preferences.genres
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        if (data) setPreferenceId(data.id);
-      } catch (error) {
-        console.error('Error saving preferences:', error);
-      }
-    }
+    localStorage.setItem('userProfile', JSON.stringify(profile));
   };
 
   const handleSettingsSave = async (name: string, preferences: UserPreferences) => {
     const profile = { name, preferences };
     setUserProfile(profile);
+    localStorage.setItem('userProfile', JSON.stringify(profile));
 
     setMovies([]);
     setCurrentIndex(0);
     setCurrentPage(1);
     setSeenMovies(new Set());
     localStorage.removeItem('seenMovies');
-
-    if (supabase && preferenceId) {
-      try {
-        await supabase
-          .from('anonymous_preferences')
-          .update({
-            name: name,
-            languages: preferences.languages,
-            content_type: preferences.contentType,
-            series_type: preferences.seriesType,
-            genres: preferences.genres,
-            last_active: new Date().toISOString()
-          })
-          .eq('id', preferenceId);
-      } catch (error) {
-        console.error('Error updating preferences:', error);
-      }
-    }
 
     setCurrentView('swipe');
   };
@@ -220,6 +193,10 @@ function App() {
     localStorage.setItem('hasSeenHomepage', 'true');
     setShowHomePage(false);
   };
+
+  if (!user) {
+    return <Auth />;
+  }
 
   if (showHomePage) {
     return <HomePage onStart={handleStartApp} />;
@@ -281,18 +258,6 @@ function App() {
                       );
                     })}
                   </div>
-                </div>
-                
-                <div className="lg:w-1/2">
-                  {preferenceId && (
-                    <Recommendations
-                      preferenceId={preferenceId}
-                      onMovieSelect={(movie) => {
-                        // Add to watchlist
-                        handleAction('unwatched', movie);
-                      }}
-                    />
-                  )}
                 </div>
               </div>
             ) : (
