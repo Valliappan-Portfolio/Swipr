@@ -27,6 +27,18 @@ export const LANGUAGE_NAMES: { [key: string]: string } = {
   ml: 'Malayalam'
 };
 
+export async function getWatchProviders(contentId: number, contentType: 'movie' | 'tv') {
+  try {
+    const url = `${TMDB_BASE_URL}/${contentType}/${contentId}/watch/providers?api_key=${TMDB_API_KEY}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    return data.results || {};
+  } catch (error) {
+    console.error('[TMDB] Error fetching watch providers:', error);
+    return {};
+  }
+}
+
 export async function getMovies(
   page = 1, 
   languages: string[] = ['en'], 
