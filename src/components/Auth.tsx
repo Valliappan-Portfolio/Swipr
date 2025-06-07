@@ -3,7 +3,18 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '../lib/supabase';
 
 export function Auth() {
-  if (!supabase) return null;
+  if (!supabase) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center p-4">
+        <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 w-full max-w-md text-center">
+          <h1 className="text-2xl font-bold text-white mb-4">Configuration Error</h1>
+          <p className="text-white/80">
+            Supabase configuration is missing. Please check your environment variables.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center p-4">
@@ -47,6 +58,7 @@ export function Auth() {
             }
           }}
           providers={[]}
+          redirectTo={window.location.origin}
         />
       </div>
     </div>
