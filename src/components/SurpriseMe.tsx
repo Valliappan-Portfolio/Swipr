@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { X, Sparkles, Film, Heart, ThumbsUp, Coffee, Popcorn, PartyPopper, Brain } from 'lucide-react';
 import { getMovies, getTVSeries } from '../lib/tmdb';
-import { supabase } from '../lib/supabase';
 import type { Movie, UserPreferences } from '../types';
 
 interface SurpriseMeProps {
@@ -90,53 +89,25 @@ export function SurpriseMe({ onClose, preferences }: SurpriseMeProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUserPreferences = async () => {
-    if (!supabase) return null;
-
-    try {
-      const { data: actions } = await supabase
-        .from('anonymous_actions')
-        .select('movie_id, genres')
-        .eq('action', 'like')
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (!actions || actions.length === 0) return null;
-
-      const genreFrequency = actions.reduce((acc: { [key: string]: number }, action) => {
-        action.genres?.forEach(genre => {
-          acc[genre] = (acc[genre] || 0) + 1;
-        });
-        return acc;
-      }, {});
-
-      return genreFrequency;
-    } catch (error) {
-      console.error('Error fetching user preferences:', error);
-      return null;
-    }
-  };
-
   const fetchRecommendations = async (mood: Mood) => {
     setLoading(true);
     setError(null);
 
     try {
-      const userGenrePreferences = await fetchUserPreferences();
       let allContent: Movie[] = [];
       let page = 1;
       
       // First try with primary genres
       while (allContent.length < 10 && page <= 2) {
         if (preferences.contentType === 'movies' || preferences.contentType === 'both') {
-          const movieResponse = await getMovies(page, preferences.industries, mood.primaryGenres);
+          const movieResponse = await getMovies(page, preferences.languages, mood.primaryGenres);
           if (movieResponse.results) {
             allContent = [...allContent, ...movieResponse.results];
           }
         }
         
         if (preferences.contentType === 'series' || preferences.contentType === 'both') {
-          const seriesResponse = await getTVSeries(page, preferences.industries, mood.primaryGenres);
+          const seriesResponse = await getTVSeries(page, preferences.languages, mood.primaryGenres);
           if (seriesResponse.results) {
             allContent = [...allContent, ...seriesResponse.results];
           }
@@ -149,14 +120,14 @@ export function SurpriseMe({ onClose, preferences }: SurpriseMeProps) {
         page = 1;
         while (allContent.length < 20 && page <= 2) {
           if (preferences.contentType === 'movies' || preferences.contentType === 'both') {
-            const movieResponse = await getMovies(page, preferences.industries, mood.fallbackGenres);
+            const movieResponse = await getMovies(page, preferences.languages, mood.fallbackGenres);
             if (movieResponse.results) {
               allContent = [...allContent, ...movieResponse.results];
             }
           }
           
           if (preferences.contentType === 'series' || preferences.contentType === 'both') {
-            const seriesResponse = await getTVSeries(page, preferences.industries, mood.fallbackGenres);
+            const seriesResponse = await getTVSeries(page, preferences.languages, mood.fallbackGenres);
             if (seriesResponse.results) {
               allContent = [...allContent, ...seriesResponse.results];
             }
@@ -181,9 +152,7 @@ export function SurpriseMe({ onClose, preferences }: SurpriseMeProps) {
             const primaryBoost = mood.primaryGenres.includes(genre) ? 3 : 0;
             // Fallback genres get smaller boost
             const fallbackBoost = mood.fallbackGenres.includes(genre) ? 1 : 0;
-            // User preferences boost
-            const userBoost = userGenrePreferences?.[genre] || 0;
-            return sum + primaryBoost + fallbackBoost + (userBoost * 0.5);
+            return sum + primaryBoost + fallbackBoost;
           }, 0);
 
           score += genreMatchScore;

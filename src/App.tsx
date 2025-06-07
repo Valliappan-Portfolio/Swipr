@@ -6,10 +6,8 @@ import { Onboarding } from './components/Onboarding';
 import { Settings } from './components/Settings';
 import { WatchlistView } from './components/WatchlistView';
 import { SurpriseMe } from './components/SurpriseMe';
-import { Auth } from './components/Auth';
 import { getMovies, getTVSeries } from './lib/tmdb';
 import type { Movie, MovieActionType, UserPreferences, ViewType } from './types';
-import { supabase } from './lib/supabase';
 
 const gradients = [
   'from-slate-900 via-teal-900 to-slate-900',
@@ -30,7 +28,10 @@ function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
-  const [userProfile, setUserProfile] = useState<{ name: string; preferences: UserPreferences } | null>(null);
+  const [userProfile, setUserProfile] = useState<{ name: string; preferences: UserPreferences } | null>(() => {
+    const saved = localStorage.getItem('userProfile');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [currentGradient, setCurrentGradient] = useState(0);
   const [currentView, setCurrentView] = useState<ViewType>('swipe');
   const [showSurpriseMe, setShowSurpriseMe] = useState(false);
@@ -38,23 +39,6 @@ function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [unwatchedMovies, setUnwatchedMovies] = useState<Movie[]>([]);
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    if (!supabase) return;
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   useEffect(() => {
     const savedSeenMovies = localStorage.getItem('seenMovies');
@@ -141,20 +125,8 @@ function App() {
     
     setCurrentGradient(prev => (prev + 1) % gradients.length);
 
-    if (supabase && user) {
-      try {
-        await supabase.from('movie_actions').insert({
-          user_id: user.id,
-          movie_id: currentMovie.id,
-          action: action
-        });
-
-        if (action === 'unwatched') {
-          setUnwatchedMovies(prev => [...prev, currentMovie]);
-        }
-      } catch (error) {
-        console.error('Error saving action:', error);
-      }
+    if (action === 'unwatched') {
+      setUnwatchedMovies(prev => [...prev, currentMovie]);
     }
 
     if (!movie && currentIndex >= movies.length - 3 && !isFetching) {
@@ -193,10 +165,6 @@ function App() {
     localStorage.setItem('hasSeenHomepage', 'true');
     setShowHomePage(false);
   };
-
-  if (!user) {
-    return <Auth />;
-  }
 
   if (showHomePage) {
     return <HomePage onStart={handleStartApp} />;
