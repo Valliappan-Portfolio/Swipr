@@ -7,6 +7,7 @@ html, body {
   overscroll-behavior-y: contain;
   height: 100%;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* App layout */
@@ -85,6 +86,30 @@ main {
   display: none;
 }
 
+/* Mobile touch optimizations */
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection for specific elements */
+input, textarea, [contenteditable] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Improve touch targets */
+button, [role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
 /* Mobile optimizations */
 @media (max-width: 640px) {
   .movie-card-container {
@@ -104,4 +129,23 @@ main {
     padding-top: 3.5rem;
     padding-bottom: 3.5rem;
   }
+}
+
+/* Prevent zoom on double tap */
+@media (max-width: 768px) {
+  button, input, select, textarea {
+    font-size: 16px;
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Better focus indicators for accessibility */
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }

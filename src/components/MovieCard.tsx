@@ -138,21 +138,31 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
     const yOffset = Math.abs(info.offset.y);
     const velocity = Math.max(Math.abs(info.velocity.x), Math.abs(info.velocity.y));
     
-    if (yOffset > 100 && yOffset > xOffset) {
+    // Improved thresholds for better mobile experience
+    const swipeThreshold = 80; // Reduced threshold for easier swiping
+    const velocityThreshold = 300; // Lower velocity threshold
+    
+    // Check for upward swipe first (unwatched action)
+    if (info.offset.y < -swipeThreshold || (info.velocity.y < -velocityThreshold && yOffset > 30)) {
       await controls.start({ 
-        y: -200, 
+        y: -300, 
         opacity: 0,
-        transition: { duration: 0.3, type: "spring", velocity: velocity }
+        transition: { duration: 0.3, type: "spring", velocity: Math.abs(info.velocity.y) }
       });
       onAction('unwatched');
-    } else if (xOffset > 100) {
+    }
+    // Check for horizontal swipes (like/pass)
+    else if (xOffset > swipeThreshold || Math.abs(info.velocity.x) > velocityThreshold) {
+      const direction = info.offset.x > 0 ? 1 : -1;
       await controls.start({ 
-        x: info.offset.x > 0 ? 200 : -200,
+        x: direction * 300,
         opacity: 0,
-        transition: { duration: 0.3, type: "spring", velocity: velocity }
+        transition: { duration: 0.3, type: "spring", velocity: Math.abs(info.velocity.x) }
       });
-      onAction(info.offset.x > 0 ? 'like' : 'pass');
-    } else {
+      onAction(direction > 0 ? 'like' : 'pass');
+    }
+    // Return to center if no action triggered
+    else {
       controls.start({ 
         x: 0, 
         y: 0,
@@ -172,7 +182,9 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
       style={{
         x,
         y,
+        rotate,
         scale,
+        opacity,
         zIndex: 1000 - stackIndex,
       }}
       initial={{
@@ -198,9 +210,10 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
         stiffness: 300,
         damping: 20
       }}
-      drag={active ? "x" : false}
-      dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={1}
+      drag={active}
+      dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+      dragElastic={0.8}
+      dragMomentum={true}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       className={`absolute w-full max-w-sm ${active ? 'cursor-grab active:cursor-grabbing' : ''} touch-none will-change-transform`}

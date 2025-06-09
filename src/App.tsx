@@ -7,6 +7,8 @@ import { Settings } from './components/Settings';
 import { WatchlistView } from './components/WatchlistView';
 import { SurpriseMe } from './components/SurpriseMe';
 import { getMovies, getTVSeries } from './lib/tmdb';
+import { recommendationEngine } from './lib/recommendations';
+import { getOrCreatePreferences, saveMovieAction, getStoredPreferenceId } from './lib/supabase';
 import type { Movie, MovieActionType, UserPreferences, ViewType } from './types';
 
 const gradients = [
@@ -39,15 +41,22 @@ function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [unwatchedMovies, setUnwatchedMovies] = useState<Movie[]>([]);
+  const [preferenceId, setPreferenceId] = useState<string | null>(null);
+  const [useIntelligentRecommendations, setUseIntelligentRecommendations] = useState(true);
 
   useEffect(() => {
     const savedSeenMovies = localStorage.getItem('seenMovies');
     if (savedSeenMovies) {
       setSeenMovies(new Set(JSON.parse(savedSeenMovies)));
     }
+
+    const storedId = getStoredPreferenceId();
+    if (storedId) {
+      setPreferenceId(storedId);
+    }
   }, []);
 
-  const fetchContent = async (page: number) => {
+  const fetchContent = async (page: number, usePersonalized: boolean = true) => {
     if (!userProfile?.preferences || isFetching) return;
 
     setIsFetching(true);
@@ -56,28 +65,50 @@ function App() {
     try {
       let allContent: Movie[] = [];
       const { preferences } = userProfile;
-      
-      if (preferences.contentType === 'movies' || preferences.contentType === 'both') {
-        const movieResponse = await getMovies(
-          page, 
-          preferences.languages, 
-          preferences.genres,
-          preferences.yearRange
-        );
-        if (movieResponse.results) {
-          allContent = [...allContent, ...movieResponse.results];
+
+      // Use intelligent recommendations if enabled and user has a preference ID
+      if (usePersonalized && useIntelligentRecommendations && preferenceId) {
+        try {
+          const personalizedMovies = await recommendationEngine.getPersonalizedRecommendations(
+            preferenceId,
+            preferences,
+            seenMovies,
+            page
+          );
+          
+          if (personalizedMovies.length > 0) {
+            allContent = personalizedMovies;
+          }
+        } catch (error) {
+          console.error('Error getting personalized recommendations:', error);
+          // Fall back to regular content fetching
         }
       }
-      
-      if (preferences.contentType === 'series' || preferences.contentType === 'both') {
-        const seriesResponse = await getTVSeries(
-          page,
-          preferences.languages,
-          preferences.genres,
-          preferences.yearRange
-        );
-        if (seriesResponse.results) {
-          allContent = [...allContent, ...seriesResponse.results];
+
+      // If no personalized content or fallback needed, use regular fetching
+      if (allContent.length === 0) {
+        if (preferences.contentType === 'movies' || preferences.contentType === 'both') {
+          const movieResponse = await getMovies(
+            page, 
+            preferences.languages, 
+            preferences.genres,
+            preferences.yearRange
+          );
+          if (movieResponse.results) {
+            allContent = [...allContent, ...movieResponse.results];
+          }
+        }
+        
+        if (preferences.contentType === 'series' || preferences.contentType === 'both') {
+          const seriesResponse = await getTVSeries(
+            page,
+            preferences.languages,
+            preferences.genres,
+            preferences.yearRange
+          );
+          if (seriesResponse.results) {
+            allContent = [...allContent, ...seriesResponse.results];
+          }
         }
       }
 
@@ -86,12 +117,15 @@ function App() {
         .filter(item => item.posterPath);
 
       if (newContent.length === 0 && page < 5) {
-        return await fetchContent(page + 1);
+        return await fetchContent(page + 1, false); // Disable personalization for retry
       }
 
-      setMovies(prev => [...prev, ...newContent]);
+      // Shuffle content to add variety
+      const shuffledContent = newContent.sort(() => Math.random() - 0.5);
+
+      setMovies(prev => [...prev, ...shuffledContent]);
       
-      return newContent.length > 0;
+      return shuffledContent.length > 0;
     } catch (error) {
       console.error('Error fetching content:', error);
       setError('Failed to load movies. Please try again.');
@@ -109,7 +143,7 @@ function App() {
     setMovies([]);
     setCurrentIndex(0);
     fetchContent(currentPage);
-  }, [userProfile?.preferences]);
+  }, [userProfile?.preferences, preferenceId]);
 
   const handleAction = async (action: MovieActionType, movie?: Movie) => {
     if (movies.length === 0 && !movie) return;
@@ -124,6 +158,17 @@ function App() {
     });
     
     setCurrentGradient(prev => (prev + 1) % gradients.length);
+
+    // Save action to database for recommendations
+    if (preferenceId) {
+      await saveMovieAction(
+        preferenceId,
+        currentMovie.id,
+        action,
+        currentMovie.genres,
+        currentMovie.language || 'en'
+      );
+    }
 
     if (action === 'unwatched') {
       setUnwatchedMovies(prev => [...prev, currentMovie]);
@@ -145,12 +190,24 @@ function App() {
     const profile = { name, preferences };
     setUserProfile(profile);
     localStorage.setItem('userProfile', JSON.stringify(profile));
+
+    // Create preference ID for recommendations
+    const id = await getOrCreatePreferences(name, preferences);
+    if (id) {
+      setPreferenceId(id);
+    }
   };
 
   const handleSettingsSave = async (name: string, preferences: UserPreferences) => {
     const profile = { name, preferences };
     setUserProfile(profile);
     localStorage.setItem('userProfile', JSON.stringify(profile));
+
+    // Update preference ID
+    const id = await getOrCreatePreferences(name, preferences);
+    if (id) {
+      setPreferenceId(id);
+    }
 
     setMovies([]);
     setCurrentIndex(0);
@@ -194,13 +251,28 @@ function App() {
             <h1 className="text-lg font-bold text-white">What2WatchNxt</h1>
           </div>
           
-          <button
-            onClick={() => setCurrentView('settings')}
-            className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition"
-            title="Settings"
-          >
-            <SettingsIcon className="h-5 w-5 text-white" />
-          </button>
+          <div className="flex items-center gap-2">
+            {preferenceId && (
+              <button
+                onClick={() => setUseIntelligentRecommendations(!useIntelligentRecommendations)}
+                className={`px-3 py-1 rounded-full text-xs transition ${
+                  useIntelligentRecommendations
+                    ? 'bg-green-500/20 text-green-300'
+                    : 'bg-white/20 text-white/60'
+                }`}
+                title="Toggle intelligent recommendations"
+              >
+                {useIntelligentRecommendations ? 'Smart' : 'Basic'}
+              </button>
+            )}
+            <button
+              onClick={() => setCurrentView('settings')}
+              className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition"
+              title="Settings"
+            >
+              <SettingsIcon className="h-5 w-5 text-white" />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -230,7 +302,10 @@ function App() {
               </div>
             ) : (
               <div className="text-center text-white/80">
-                <p className="text-xl">Loading movies...</p>
+                <p className="text-xl">Loading personalized recommendations...</p>
+                {useIntelligentRecommendations && (
+                  <p className="text-sm mt-2">Using AI to find movies you'll love</p>
+                )}
               </div>
             )}
           </div>
