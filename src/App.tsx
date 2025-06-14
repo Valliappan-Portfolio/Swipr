@@ -6,9 +6,11 @@ import { Onboarding } from './components/Onboarding';
 import { Settings } from './components/Settings';
 import { WatchlistView } from './components/WatchlistView';
 import { SurpriseMe } from './components/SurpriseMe';
+import { Auth } from './components/Auth';
 import { getMovies, getTVSeries } from './lib/tmdb';
-import { recommendationEngine } from './lib/recommendations';
+import { intelligentRecommendationEngine } from './lib/intelligentRecommendations';
 import { getOrCreatePreferences, saveMovieAction, getStoredPreferenceId } from './lib/supabase';
+import { supabase } from './lib/supabase';
 import type { Movie, MovieActionType, UserPreferences, ViewType } from './types';
 
 const gradients = [
@@ -23,6 +25,8 @@ const gradients = [
 ];
 
 function App() {
+  const [user, setUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [showHomePage, setShowHomePage] = useState(() => {
     return !localStorage.getItem('hasSeenHomepage');
   });
@@ -43,6 +47,28 @@ function App() {
   const [unwatchedMovies, setUnwatchedMovies] = useState<Movie[]>([]);
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
   const [useIntelligentRecommendations, setUseIntelligentRecommendations] = useState(true);
+
+  // Check authentication status
+  useEffect(() => {
+    if (!supabase) {
+      setAuthLoading(false);
+      return;
+    }
+
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+      setAuthLoading(false);
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const savedSeenMovies = localStorage.getItem('seenMovies');
@@ -67,9 +93,9 @@ function App() {
       const { preferences } = userProfile;
 
       // Use intelligent recommendations if enabled and user has a preference ID
-      if (usePersonalized && useIntelligentRecommendations && preferenceId) {
+      if (usePersonalized && useIntelligentRecommendations && preferenceId && user) {
         try {
-          const personalizedMovies = await recommendationEngine.getPersonalizedRecommendations(
+          const personalizedMovies = await intelligentRecommendationEngine.getPersonalizedRecommendations(
             preferenceId,
             preferences,
             seenMovies,
@@ -78,9 +104,10 @@ function App() {
           
           if (personalizedMovies.length > 0) {
             allContent = personalizedMovies;
+            console.log(`🎯 Intelligent recommendations loaded: ${personalizedMovies.length} movies`);
           }
         } catch (error) {
-          console.error('Error getting personalized recommendations:', error);
+          console.error('Error getting intelligent recommendations:', error);
           // Fall back to regular content fetching
         }
       }
@@ -143,7 +170,7 @@ function App() {
     setMovies([]);
     setCurrentIndex(0);
     fetchContent(currentPage);
-  }, [userProfile?.preferences, preferenceId]);
+  }, [userProfile?.preferences, preferenceId, user]);
 
   const handleAction = async (action: MovieActionType, movie?: Movie) => {
     if (movies.length === 0 && !movie) return;
@@ -168,6 +195,16 @@ function App() {
         currentMovie.genres,
         currentMovie.language || 'en'
       );
+
+      // Update intelligent recommendation engine
+      if (user && useIntelligentRecommendations) {
+        await intelligentRecommendationEngine.updateUserProfile(
+          preferenceId,
+          currentMovie.id,
+          action,
+          currentMovie
+        );
+      }
     }
 
     if (action === 'unwatched') {
@@ -223,8 +260,34 @@ function App() {
     setShowHomePage(false);
   };
 
+  const handleAuthSuccess = (authUser: any) => {
+    setUser(authUser);
+  };
+
+  const handleSignOut = async () => {
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+    setUser(null);
+    setUserProfile(null);
+    localStorage.clear();
+    setShowHomePage(true);
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+      </div>
+    );
+  }
+
   if (showHomePage) {
     return <HomePage onStart={handleStartApp} />;
+  }
+
+  if (!user && supabase) {
+    return <Auth onAuthSuccess={handleAuthSuccess} />;
   }
 
   if (!userProfile) {
@@ -238,6 +301,7 @@ function App() {
         initialPreferences={userProfile.preferences}
         onSave={handleSettingsSave}
         onBack={() => setCurrentView('swipe')}
+        onSignOut={user ? handleSignOut : undefined}
       />
     );
   }
@@ -249,10 +313,15 @@ function App() {
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-white" />
             <h1 className="text-lg font-bold text-white">What2WatchNxt</h1>
+            {user && (
+              <span className="text-xs text-white/60 bg-white/10 px-2 py-1 rounded-full">
+                Smart AI
+              </span>
+            )}
           </div>
           
           <div className="flex items-center gap-2">
-            {preferenceId && (
+            {preferenceId && user && (
               <button
                 onClick={() => setUseIntelligentRecommendations(!useIntelligentRecommendations)}
                 className={`px-3 py-1 rounded-full text-xs transition ${
@@ -262,7 +331,7 @@ function App() {
                 }`}
                 title="Toggle intelligent recommendations"
               >
-                {useIntelligentRecommendations ? 'Smart' : 'Basic'}
+                {useIntelligentRecommendations ? 'AI On' : 'AI Off'}
               </button>
             )}
             <button
@@ -302,9 +371,11 @@ function App() {
               </div>
             ) : (
               <div className="text-center text-white/80">
-                <p className="text-xl">Loading personalized recommendations...</p>
-                {useIntelligentRecommendations && (
-                  <p className="text-sm mt-2">Using AI to find movies you'll love</p>
+                <p className="text-xl">
+                  {user ? 'Loading AI-powered recommendations...' : 'Loading recommendations...'}
+                </p>
+                {useIntelligentRecommendations && user && (
+                  <p className="text-sm mt-2">Using machine learning to find movies you'll love</p>
                 )}
               </div>
             )}

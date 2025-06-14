@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Film, Tv, Clock, Tag, ArrowLeft, RotateCcw, CheckSquare, Globe, MessageSquare } from 'lucide-react';
+import { Film, Tv, Clock, Tag, ArrowLeft, RotateCcw, CheckSquare, Globe, MessageSquare, LogOut } from 'lucide-react';
 import type { MovieLanguage, ContentType, SeriesType, UserPreferences } from '../types';
 import { LANGUAGE_NAMES } from '../lib/tmdb';
 import { FeedbackForm } from './FeedbackForm';
@@ -9,6 +9,7 @@ interface SettingsProps {
   initialPreferences: UserPreferences;
   onSave: (name: string, preferences: UserPreferences) => void;
   onBack: () => void;
+  onSignOut?: () => void;
 }
 
 const languages: MovieLanguage[] = ['en', 'ta', 'ml', 'hi', 'te', 'kn'];
@@ -17,7 +18,7 @@ const genres = [
   'Horror', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller'
 ];
 
-export function Settings({ initialName, initialPreferences, onSave, onBack }: SettingsProps) {
+export function Settings({ initialName, initialPreferences, onSave, onBack, onSignOut }: SettingsProps) {
   const [showFeedback, setShowFeedback] = useState(false);
   const [name, setName] = useState(initialName);
   const [preferences, setPreferences] = useState<UserPreferences>(initialPreferences);
@@ -90,6 +91,16 @@ export function Settings({ initialName, initialPreferences, onSave, onBack }: Se
               <MessageSquare className="h-4 w-4" />
               <span>Feedback</span>
             </button>
+
+            {onSignOut && (
+              <button
+                onClick={onSignOut}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500/20 text-orange-300 hover:bg-orange-500/30 transition"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Sign Out</span>
+              </button>
+            )}
 
             <button
               onClick={() => setShowResetConfirm(true)}
