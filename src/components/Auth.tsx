@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { User, Lock, Mail, Eye, EyeOff } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import React, { useState, useEffect } from 'react';
+import { User, Lock, Mail, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { supabase, testSupabaseConnection } from '../lib/supabase';
 
 interface AuthProps {
   onAuthSuccess: (user: any) => void;
@@ -14,6 +14,27 @@ export function Auth({ onAuthSuccess }: AuthProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'failed'>('checking');
+
+  useEffect(() => {
+    // Test Supabase connection on component mount
+    const checkConnection = async () => {
+      if (!supabase) {
+        setConnectionStatus('failed');
+        setError('Supabase client not configured');
+        return;
+      }
+
+      const isConnected = await testSupabaseConnection();
+      setConnectionStatus(isConnected ? 'connected' : 'failed');
+      
+      if (!isConnected) {
+        setError('Unable to connect to authentication service. Please check your internet connection and try again.');
+      }
+    };
+
+    checkConnection();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,21 +43,32 @@ export function Auth({ onAuthSuccess }: AuthProps) {
       return;
     }
 
+    if (connectionStatus === 'failed') {
+      setError('Cannot authenticate - connection to service failed. Please refresh the page and try again.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
       if (isLogin) {
+        console.log('Attempting sign in...');
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Sign in error:', error);
+          throw error;
+        }
         if (data.user) {
+          console.log('Sign in successful');
           onAuthSuccess(data.user);
         }
       } else {
+        console.log('Attempting sign up...');
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -47,13 +79,28 @@ export function Auth({ onAuthSuccess }: AuthProps) {
           }
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Sign up error:', error);
+          throw error;
+        }
         if (data.user) {
+          console.log('Sign up successful');
           onAuthSuccess(data.user);
         }
       }
     } catch (error: any) {
-      setError(error.message || 'Authentication failed');
+      console.error('Authentication error:', error);
+      
+      // Provide more specific error messages
+      if (error.message?.includes('fetch')) {
+        setError('Network connection failed. Please check your internet connection and try again.');
+      } else if (error.message?.includes('Invalid login credentials')) {
+        setError('Invalid email or password. Please check your credentials and try again.');
+      } else if (error.message?.includes('User already registered')) {
+        setError('An account with this email already exists. Please sign in instead.');
+      } else {
+        setError(error.message || 'Authentication failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -63,10 +110,18 @@ export function Auth({ onAuthSuccess }: AuthProps) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center p-4">
         <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 w-full max-w-md text-center">
+          <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white mb-4">Configuration Error</h1>
-          <p className="text-white/80">
+          <p className="text-white/80 mb-4">
             Authentication service is not configured. Please check your environment variables.
           </p>
+          <div className="text-left bg-black/20 rounded-lg p-4 text-sm text-white/70">
+            <p>Missing or invalid:</p>
+            <ul className="list-disc list-inside mt-2">
+              <li>VITE_SUPABASE_URL</li>
+              <li>VITE_SUPABASE_ANON_KEY</li>
+            </ul>
+          </div>
         </div>
       </div>
     );
@@ -85,6 +140,18 @@ export function Auth({ onAuthSuccess }: AuthProps) {
           <p className="text-white/70">
             {isLogin ? 'Sign in to get personalized recommendations' : 'Create an account to start discovering'}
           </p>
+          
+          {/* Connection Status Indicator */}
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${
+              connectionStatus === 'checking' ? 'bg-yellow-400 animate-pulse' :
+              connectionStatus === 'connected' ? 'bg-green-400' : 'bg-red-400'
+            }`}></div>
+            <span className="text-xs text-white/60">
+              {connectionStatus === 'checking' ? 'Connecting...' :
+               connectionStatus === 'connected' ? 'Connected' : 'Connection Failed'}
+            </span>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -151,13 +218,16 @@ export function Auth({ onAuthSuccess }: AuthProps) {
 
           {error && (
             <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/30">
-              <p className="text-red-300 text-sm">{error}</p>
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 text-red-300 flex-shrink-0 mt-0.5" />
+                <p className="text-red-300 text-sm">{error}</p>
+              </div>
             </div>
           )}
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || connectionStatus === 'failed'}
             className="w-full py-3 px-4 rounded-lg bg-white text-purple-900 font-semibold hover:bg-white/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (

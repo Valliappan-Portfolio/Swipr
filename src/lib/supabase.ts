@@ -17,9 +17,47 @@ export const supabase = supabaseUrl && supabaseAnonKey
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true
+      },
+      global: {
+        fetch: (url, options = {}) => {
+          console.log('Supabase fetch request:', url);
+          return fetch(url, {
+            ...options,
+            headers: {
+              ...options.headers,
+            }
+          }).catch(error => {
+            console.error('Supabase fetch error:', error);
+            throw error;
+          });
+        }
       }
     })
   : null;
+
+// Helper function to test Supabase connection
+export async function testSupabaseConnection() {
+  if (!supabase) {
+    console.error('Supabase client not initialized');
+    return false;
+  }
+
+  try {
+    console.log('Testing Supabase connection...');
+    const { data, error } = await supabase.from('anonymous_preferences').select('count').limit(1);
+    
+    if (error) {
+      console.error('Supabase connection test failed:', error);
+      return false;
+    }
+    
+    console.log('Supabase connection test successful');
+    return true;
+  } catch (error) {
+    console.error('Supabase connection test error:', error);
+    return false;
+  }
+}
 
 // Helper function to get stored preference ID
 export function getStoredPreferenceId(): string | null {
