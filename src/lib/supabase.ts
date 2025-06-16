@@ -27,9 +27,9 @@ export const supabase = supabaseUrl && supabaseAnonKey
         fetch: (url, options = {}) => {
           console.log('Supabase fetch request to:', url);
           
-          // Add timeout to prevent hanging requests
+          // Increased timeout to 30 seconds for better reliability
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
           
           return fetch(url, {
             ...options,
@@ -142,62 +142,107 @@ export function storePreferenceId(id: string) {
   localStorage.setItem('preferenceId', id);
 }
 
-// Helper function to get or create anonymous preferences
-export async function getOrCreatePreferences(name: string, preferences: any) {
-  if (!supabase) return null;
-
-  try {
-    // Check for existing stored ID
-    const storedId = getStoredPreferenceId();
-    
-    if (storedId) {
-      // Try to get existing preferences
-      const { data: existing } = await supabase
-        .from('anonymous_preferences')
-        .select('*')
-        .eq('id', storedId)
-        .single();
-
-      if (existing) {
-        // Update last active timestamp
-        await supabase
-          .from('anonymous_preferences')
-          .update({ last_active: new Date().toISOString() })
-          .eq('id', storedId);
-          
-        return storedId;
-      }
-    }
-
-    // Create new anonymous preferences
-    const { data, error } = await supabase
-      .from('anonymous_preferences')
-      .insert({
-        name,
-        languages: preferences.languages,
-        content_type: preferences.contentType,
-        series_type: preferences.seriesType,
-        genres: preferences.genres
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    
-    // Store the new ID
-    if (data) {
-      storePreferenceId(data.id);
-      return data.id;
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Error with preferences:', error);
-    return null;
-  }
+// FALLBACK: Simple local storage authentication for when Supabase fails
+export function createLocalUser(email: string, name: string) {
+  const userId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const userData = {
+    id: userId,
+    email,
+    name,
+    created_at: new Date().toISOString(),
+    is_local: true
+  };
+  
+  localStorage.setItem('local_user', JSON.stringify(userData));
+  localStorage.setItem('local_session', 'active');
+  
+  return userData;
 }
 
-// Helper function to save movie action
+export function getLocalUser() {
+  const userData = localStorage.getItem('local_user');
+  const session = localStorage.getItem('local_session');
+  
+  if (userData && session === 'active') {
+    return JSON.parse(userData);
+  }
+  
+  return null;
+}
+
+export function signOutLocal() {
+  localStorage.removeItem('local_user');
+  localStorage.removeItem('local_session');
+}
+
+// Helper function to get or create anonymous preferences (works with both Supabase and local)
+export async function getOrCreatePreferences(name: string, preferences: any) {
+  // Try Supabase first
+  if (supabase) {
+    try {
+      // Check for existing stored ID
+      const storedId = getStoredPreferenceId();
+      
+      if (storedId) {
+        // Try to get existing preferences
+        const { data: existing } = await supabase
+          .from('anonymous_preferences')
+          .select('*')
+          .eq('id', storedId)
+          .single();
+
+        if (existing) {
+          // Update last active timestamp
+          await supabase
+            .from('anonymous_preferences')
+            .update({ last_active: new Date().toISOString() })
+            .eq('id', storedId);
+            
+          return storedId;
+        }
+      }
+
+      // Create new anonymous preferences
+      const { data, error } = await supabase
+        .from('anonymous_preferences')
+        .insert({
+          name,
+          languages: preferences.languages,
+          content_type: preferences.contentType,
+          series_type: preferences.seriesType,
+          genres: preferences.genres
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      // Store the new ID
+      if (data) {
+        storePreferenceId(data.id);
+        return data.id;
+      }
+    } catch (error) {
+      console.error('Supabase preferences error, falling back to local storage:', error);
+    }
+  }
+
+  // Fallback to local storage
+  const localId = `local_pref_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const localPreferences = {
+    id: localId,
+    name,
+    preferences,
+    created_at: new Date().toISOString()
+  };
+  
+  localStorage.setItem('local_preferences', JSON.stringify(localPreferences));
+  storePreferenceId(localId);
+  
+  return localId;
+}
+
+// Helper function to save movie action (works with both Supabase and local)
 export async function saveMovieAction(
   preferenceId: string,
   movieId: number,
@@ -205,52 +250,78 @@ export async function saveMovieAction(
   genres: string[],
   language: string
 ) {
-  if (!supabase || !preferenceId) return;
-
-  try {
-    await supabase.from('anonymous_actions').insert({
-      preference_id: preferenceId,
-      movie_id: movieId,
-      action,
-      genres,
-      language
-    });
-  } catch (error) {
-    console.error('Error saving movie action:', error);
+  // Try Supabase first
+  if (supabase && preferenceId && !preferenceId.startsWith('local_')) {
+    try {
+      await supabase.from('anonymous_actions').insert({
+        preference_id: preferenceId,
+        movie_id: movieId,
+        action,
+        genres,
+        language
+      });
+      return;
+    } catch (error) {
+      console.error('Supabase action save error, falling back to local storage:', error);
+    }
   }
+
+  // Fallback to local storage
+  const existingActions = JSON.parse(localStorage.getItem('local_actions') || '[]');
+  const newAction = {
+    preference_id: preferenceId,
+    movie_id: movieId,
+    action,
+    genres,
+    language,
+    created_at: new Date().toISOString()
+  };
+  
+  existingActions.push(newAction);
+  localStorage.setItem('local_actions', JSON.stringify(existingActions));
 }
 
-// Helper function to load existing preferences
+// Helper function to load existing preferences (works with both Supabase and local)
 export async function loadExistingPreferences() {
-  if (!supabase) return null;
-
   const storedId = getStoredPreferenceId();
   if (!storedId) return null;
 
-  try {
-    const { data, error } = await supabase
-      .from('anonymous_preferences')
-      .select('*')
-      .eq('id', storedId)
-      .single();
+  // Try Supabase first
+  if (supabase && !storedId.startsWith('local_')) {
+    try {
+      const { data, error } = await supabase
+        .from('anonymous_preferences')
+        .select('*')
+        .eq('id', storedId)
+        .single();
 
-    if (error) throw error;
-    
-    if (data) {
-      return {
-        name: data.name,
-        preferences: {
-          languages: data.languages,
-          contentType: data.content_type,
-          seriesType: data.series_type,
-          genres: data.genres
-        }
-      };
+      if (error) throw error;
+      
+      if (data) {
+        return {
+          name: data.name,
+          preferences: {
+            languages: data.languages,
+            contentType: data.content_type,
+            seriesType: data.series_type,
+            genres: data.genres
+          }
+        };
+      }
+    } catch (error) {
+      console.error('Supabase preferences load error, checking local storage:', error);
     }
-
-    return null;
-  } catch (error) {
-    console.error('Error loading preferences:', error);
-    return null;
   }
+
+  // Fallback to local storage
+  const localPreferences = localStorage.getItem('local_preferences');
+  if (localPreferences) {
+    const data = JSON.parse(localPreferences);
+    return {
+      name: data.name,
+      preferences: data.preferences
+    };
+  }
+
+  return null;
 }
