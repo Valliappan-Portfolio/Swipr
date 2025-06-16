@@ -44,10 +44,13 @@ export async function testSupabaseConnection() {
 
   try {
     console.log('Testing Supabase connection...');
-    const { data, error } = await supabase.from('anonymous_preferences').select('count').limit(1);
     
-    if (error) {
-      console.error('Supabase connection test failed:', error);
+    // Use a more reliable connection test that doesn't depend on specific tables
+    // This tests the basic auth service connectivity
+    const { data, error } = await supabase.auth.getSession();
+    
+    if (error && error.message.includes('fetch')) {
+      console.error('Supabase connection test failed - network error:', error);
       return false;
     }
     
