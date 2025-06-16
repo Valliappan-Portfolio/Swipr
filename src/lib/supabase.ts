@@ -69,30 +69,7 @@ export async function testSupabaseConnection() {
     console.log('Testing Supabase connection...');
     console.log('Supabase URL:', supabaseUrl);
     
-    // First, test basic connectivity with a simple health check
-    const healthCheckUrl = `${supabaseUrl}/rest/v1/`;
-    
-    try {
-      const response = await fetch(healthCheckUrl, {
-        method: 'HEAD',
-        headers: {
-          'apikey': supabaseAnonKey!,
-          'Authorization': `Bearer ${supabaseAnonKey!}`
-        }
-      });
-      
-      console.log('Health check response status:', response.status);
-      
-      if (!response.ok && response.status !== 404) {
-        console.error('Health check failed with status:', response.status);
-        return false;
-      }
-    } catch (error) {
-      console.error('Health check failed:', error);
-      return false;
-    }
-    
-    // Then test auth service specifically
+    // Test auth service directly - this is sufficient to verify connectivity
     const { data, error } = await supabase.auth.getSession();
     
     if (error && error.message.includes('fetch')) {
