@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, Lock, Mail, Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { supabase, testSupabaseConnection } from '../lib/supabase';
+import { User, Lock, Mail, Eye, EyeOff, AlertCircle, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { supabase, testSupabaseConnection, diagnoseConnection } from '../lib/supabase';
 
 interface AuthProps {
   onAuthSuccess: (user: any) => void;
@@ -15,26 +15,37 @@ export function Auth({ onAuthSuccess }: AuthProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'failed'>('checking');
+  const [diagnostics, setDiagnostics] = useState<any>(null);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   useEffect(() => {
-    // Test Supabase connection on component mount
-    const checkConnection = async () => {
-      if (!supabase) {
-        setConnectionStatus('failed');
-        setError('Supabase client not configured');
-        return;
-      }
-
-      const isConnected = await testSupabaseConnection();
-      setConnectionStatus(isConnected ? 'connected' : 'failed');
-      
-      if (!isConnected) {
-        setError('Unable to connect to authentication service. Please check your internet connection and try again.');
-      }
-    };
-
     checkConnection();
   }, []);
+
+  const checkConnection = async () => {
+    setConnectionStatus('checking');
+    setError(null);
+    
+    if (!supabase) {
+      setConnectionStatus('failed');
+      setError('Supabase client not configured');
+      return;
+    }
+
+    const isConnected = await testSupabaseConnection();
+    setConnectionStatus(isConnected ? 'connected' : 'failed');
+    
+    if (!isConnected) {
+      const diag = await diagnoseConnection();
+      setDiagnostics(diag);
+      
+      if (diag.issue) {
+        setError(`Connection failed: ${diag.issue}. ${diag.error ? `Details: ${diag.error}` : ''}`);
+      } else {
+        setError('Unable to connect to authentication service. Please check your internet connection and try again.');
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,12 +103,18 @@ export function Auth({ onAuthSuccess }: AuthProps) {
       console.error('Authentication error:', error);
       
       // Provide more specific error messages
-      if (error.message?.includes('fetch')) {
+      if (error.message?.includes('fetch') || error.message?.includes('Network connection failed')) {
         setError('Network connection failed. Please check your internet connection and try again.');
+        setConnectionStatus('failed');
+      } else if (error.message?.includes('timeout')) {
+        setError('Request timed out. Please check your internet connection and try again.');
+        setConnectionStatus('failed');
       } else if (error.message?.includes('Invalid login credentials')) {
         setError('Invalid email or password. Please check your credentials and try again.');
       } else if (error.message?.includes('User already registered')) {
         setError('An account with this email already exists. Please sign in instead.');
+      } else if (error.message?.includes('Email not confirmed')) {
+        setError('Please check your email and click the confirmation link before signing in.');
       } else {
         setError(error.message || 'Authentication failed. Please try again.');
       }
@@ -151,7 +168,49 @@ export function Auth({ onAuthSuccess }: AuthProps) {
               {connectionStatus === 'checking' ? 'Connecting...' :
                connectionStatus === 'connected' ? 'Connected' : 'Connection Failed'}
             </span>
+            {connectionStatus === 'connected' ? (
+              <Wifi className="h-3 w-3 text-green-400" />
+            ) : connectionStatus === 'failed' ? (
+              <WifiOff className="h-3 w-3 text-red-400" />
+            ) : null}
           </div>
+
+          {/* Connection retry button */}
+          {connectionStatus === 'failed' && (
+            <div className="mt-2 flex items-center justify-center gap-2">
+              <button
+                onClick={checkConnection}
+                className="text-xs text-white/60 hover:text-white/80 flex items-center gap-1 transition"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Retry Connection
+              </button>
+              <span className="text-white/40">|</span>
+              <button
+                onClick={() => setShowDiagnostics(!showDiagnostics)}
+                className="text-xs text-white/60 hover:text-white/80 transition"
+              >
+                {showDiagnostics ? 'Hide' : 'Show'} Details
+              </button>
+            </div>
+          )}
+
+          {/* Diagnostics panel */}
+          {showDiagnostics && diagnostics && (
+            <div className="mt-4 text-left bg-black/20 rounded-lg p-4 text-xs text-white/70">
+              <p className="font-semibold mb-2">Connection Diagnostics:</p>
+              <ul className="space-y-1">
+                <li>Environment Variables: {diagnostics.envVarsPresent ? '✓' : '✗'}</li>
+                <li>URL Format: {diagnostics.urlFormat ? '✓' : '✗'}</li>
+                <li>Client Initialized: {diagnostics.clientInitialized ? '✓' : '✗'}</li>
+                <li>Network Connectivity: {diagnostics.networkConnectivity ? '✓' : '✗'}</li>
+                <li>Auth Service: {diagnostics.authServiceReachable ? '✓' : '✗'}</li>
+              </ul>
+              {diagnostics.issue && (
+                <p className="mt-2 text-red-300">Issue: {diagnostics.issue}</p>
+              )}
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

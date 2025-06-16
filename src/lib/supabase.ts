@@ -10,6 +10,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Present' : 'Missing');
 }
 
+// Validate URL format
+if (supabaseUrl && !supabaseUrl.startsWith('https://') && !supabaseUrl.startsWith('http://')) {
+  console.error('Invalid Supabase URL format. Must start with https:// or http://');
+}
+
 // Create a single, shared client with proper configuration
 export const supabase = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey, {
@@ -20,14 +25,32 @@ export const supabase = supabaseUrl && supabaseAnonKey
       },
       global: {
         fetch: (url, options = {}) => {
-          console.log('Supabase fetch request:', url);
+          console.log('Supabase fetch request to:', url);
+          
+          // Add timeout to prevent hanging requests
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+          
           return fetch(url, {
             ...options,
+            signal: controller.signal,
             headers: {
               ...options.headers,
             }
+          }).then(response => {
+            clearTimeout(timeoutId);
+            return response;
           }).catch(error => {
+            clearTimeout(timeoutId);
             console.error('Supabase fetch error:', error);
+            
+            // Provide more specific error information
+            if (error.name === 'AbortError') {
+              throw new Error('Request timeout - please check your internet connection');
+            } else if (error.message.includes('fetch')) {
+              throw new Error('Network connection failed - please check your internet connection and try again');
+            }
+            
             throw error;
           });
         }
@@ -35,7 +58,7 @@ export const supabase = supabaseUrl && supabaseAnonKey
     })
   : null;
 
-// Helper function to test Supabase connection
+// Enhanced connection test with better diagnostics
 export async function testSupabaseConnection() {
   if (!supabase) {
     console.error('Supabase client not initialized');
@@ -44,13 +67,36 @@ export async function testSupabaseConnection() {
 
   try {
     console.log('Testing Supabase connection...');
+    console.log('Supabase URL:', supabaseUrl);
     
-    // Use a more reliable connection test that doesn't depend on specific tables
-    // This tests the basic auth service connectivity
+    // First, test basic connectivity with a simple health check
+    const healthCheckUrl = `${supabaseUrl}/rest/v1/`;
+    
+    try {
+      const response = await fetch(healthCheckUrl, {
+        method: 'HEAD',
+        headers: {
+          'apikey': supabaseAnonKey!,
+          'Authorization': `Bearer ${supabaseAnonKey!}`
+        }
+      });
+      
+      console.log('Health check response status:', response.status);
+      
+      if (!response.ok && response.status !== 404) {
+        console.error('Health check failed with status:', response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error('Health check failed:', error);
+      return false;
+    }
+    
+    // Then test auth service specifically
     const { data, error } = await supabase.auth.getSession();
     
     if (error && error.message.includes('fetch')) {
-      console.error('Supabase connection test failed - network error:', error);
+      console.error('Supabase auth connection test failed - network error:', error);
       return false;
     }
     
@@ -60,6 +106,53 @@ export async function testSupabaseConnection() {
     console.error('Supabase connection test error:', error);
     return false;
   }
+}
+
+// Helper function to diagnose connection issues
+export async function diagnoseConnection() {
+  const diagnostics = {
+    envVarsPresent: !!(supabaseUrl && supabaseAnonKey),
+    urlFormat: supabaseUrl ? supabaseUrl.startsWith('https://') || supabaseUrl.startsWith('http://') : false,
+    clientInitialized: !!supabase,
+    networkConnectivity: false,
+    authServiceReachable: false
+  };
+
+  if (!diagnostics.envVarsPresent) {
+    return { ...diagnostics, issue: 'Missing environment variables' };
+  }
+
+  if (!diagnostics.urlFormat) {
+    return { ...diagnostics, issue: 'Invalid URL format' };
+  }
+
+  if (!diagnostics.clientInitialized) {
+    return { ...diagnostics, issue: 'Client initialization failed' };
+  }
+
+  // Test basic network connectivity
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/`, {
+      method: 'HEAD',
+      headers: {
+        'apikey': supabaseAnonKey!,
+        'Authorization': `Bearer ${supabaseAnonKey!}`
+      }
+    });
+    diagnostics.networkConnectivity = true;
+  } catch (error) {
+    return { ...diagnostics, issue: 'Network connectivity failed', error: error.message };
+  }
+
+  // Test auth service
+  try {
+    await supabase!.auth.getSession();
+    diagnostics.authServiceReachable = true;
+  } catch (error) {
+    return { ...diagnostics, issue: 'Auth service unreachable', error: error.message };
+  }
+
+  return { ...diagnostics, issue: null };
 }
 
 // Helper function to get stored preference ID
