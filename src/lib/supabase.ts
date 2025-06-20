@@ -3,227 +3,133 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Validate environment variables
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables');
-  console.error('VITE_SUPABASE_URL:', supabaseUrl ? 'Present' : 'Missing');
-  console.error('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Present' : 'Missing');
-}
-
-// Validate URL format
-if (supabaseUrl && !supabaseUrl.startsWith('https://') && !supabaseUrl.startsWith('http://')) {
-  console.error('Invalid Supabase URL format. Must start with https:// or http://');
-}
-
-// Create a single, shared client with proper configuration
-export const supabase = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
-      },
-      global: {
-        fetch: (url, options = {}) => {
-          console.log('Supabase fetch request to:', url);
-          
-          // Increased timeout to 30 seconds for better reliability
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-          
-          return fetch(url, {
-            ...options,
-            signal: controller.signal,
-            headers: {
-              ...options.headers,
-            }
-          }).then(response => {
-            clearTimeout(timeoutId);
-            return response;
-          }).catch(error => {
-            clearTimeout(timeoutId);
-            console.error('Supabase fetch error:', error);
-            
-            // Provide more specific error information
-            if (error.name === 'AbortError') {
-              throw new Error('Request timeout - please check your internet connection');
-            } else if (error.message.includes('fetch')) {
-              throw new Error('Network connection failed - please check your internet connection and try again');
-            }
-            
-            throw error;
-          });
-        }
-      }
-    })
+export const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
-// Enhanced connection test with better diagnostics
-export async function testSupabaseConnection() {
-  if (!supabase) {
-    console.error('Supabase client not initialized');
-    return false;
-  }
+// Local user management for fallback authentication
+const LOCAL_USER_KEY = 'local_user';
+const LOCAL_PREFERENCES_KEY = 'local_preferences';
 
-  try {
-    console.log('Testing Supabase connection...');
-    console.log('Supabase URL:', supabaseUrl);
-    
-    // Test auth service directly - this is sufficient to verify connectivity
-    const { data, error } = await supabase.auth.getSession();
-    
-    if (error && error.message.includes('fetch')) {
-      console.error('Supabase auth connection test failed - network error:', error);
-      return false;
-    }
-    
-    console.log('Supabase connection test successful');
-    return true;
-  } catch (error) {
-    console.error('Supabase connection test error:', error);
-    return false;
-  }
+export interface LocalUser {
+  id: string;
+  email: string;
+  name?: string;
+  created_at: string;
+  isLocal: true;
 }
 
-// Helper function to diagnose connection issues
-export async function diagnoseConnection() {
-  const diagnostics = {
-    envVarsPresent: !!(supabaseUrl && supabaseAnonKey),
-    urlFormat: supabaseUrl ? supabaseUrl.startsWith('https://') || supabaseUrl.startsWith('http://') : false,
-    clientInitialized: !!supabase,
-    networkConnectivity: false,
-    authServiceReachable: false
-  };
-
-  if (!diagnostics.envVarsPresent) {
-    return { ...diagnostics, issue: 'Missing environment variables' };
-  }
-
-  if (!diagnostics.urlFormat) {
-    return { ...diagnostics, issue: 'Invalid URL format' };
-  }
-
-  if (!diagnostics.clientInitialized) {
-    return { ...diagnostics, issue: 'Client initialization failed' };
-  }
-
-  // Test basic network connectivity
-  try {
-    const response = await fetch(`${supabaseUrl}/rest/v1/`, {
-      method: 'HEAD',
-      headers: {
-        'apikey': supabaseAnonKey!,
-        'Authorization': `Bearer ${supabaseAnonKey!}`
-      }
-    });
-    diagnostics.networkConnectivity = true;
-  } catch (error) {
-    return { ...diagnostics, issue: 'Network connectivity failed', error: error.message };
-  }
-
-  // Test auth service
-  try {
-    await supabase!.auth.getSession();
-    diagnostics.authServiceReachable = true;
-  } catch (error) {
-    return { ...diagnostics, issue: 'Auth service unreachable', error: error.message };
-  }
-
-  return { ...diagnostics, issue: null };
-}
-
-// Helper function to get stored preference ID
-export function getStoredPreferenceId(): string | null {
-  return localStorage.getItem('preferenceId');
-}
-
-// Helper function to store preference ID
-export function storePreferenceId(id: string) {
-  localStorage.setItem('preferenceId', id);
-}
-
-// FALLBACK: Simple local storage authentication for when Supabase fails
-export function createLocalUser(email: string, name: string) {
-  const userId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  const userData = {
-    id: userId,
+export function createLocalUser(email: string, name?: string): LocalUser {
+  const localUser: LocalUser = {
+    id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     email,
     name,
     created_at: new Date().toISOString(),
-    is_local: true
+    isLocal: true
   };
   
-  localStorage.setItem('local_user', JSON.stringify(userData));
-  localStorage.setItem('local_session', 'active');
-  
-  return userData;
+  localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(localUser));
+  return localUser;
 }
 
-export function getLocalUser() {
-  const userData = localStorage.getItem('local_user');
-  const session = localStorage.getItem('local_session');
+export function getLocalUser(): LocalUser | null {
+  const stored = localStorage.getItem(LOCAL_USER_KEY);
+  if (!stored) return null;
   
-  if (userData && session === 'active') {
-    return JSON.parse(userData);
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return null;
   }
+}
+
+export function signOutLocal(): void {
+  localStorage.removeItem(LOCAL_USER_KEY);
+  localStorage.removeItem(LOCAL_PREFERENCES_KEY);
+}
+
+export async function testSupabaseConnection(): Promise<boolean> {
+  if (!supabase) return false;
   
-  return null;
+  try {
+    const { error } = await supabase.from('user_preferences').select('count').limit(1);
+    return !error;
+  } catch (error) {
+    console.error('Supabase connection test failed:', error);
+    return false;
+  }
 }
 
-export function signOutLocal() {
-  localStorage.removeItem('local_user');
-  localStorage.removeItem('local_session');
+export async function diagnoseConnection() {
+  const envVarsPresent = !!(supabaseUrl && supabaseAnonKey);
+  const urlFormat = supabaseUrl ? supabaseUrl.includes('supabase.co') : false;
+  const clientInitialized = !!supabase;
+  
+  let networkConnectivity = false;
+  let authServiceReachable = false;
+  let issue = '';
+  let error = '';
+
+  if (!envVarsPresent) {
+    issue = 'Missing environment variables';
+  } else if (!urlFormat) {
+    issue = 'Invalid Supabase URL format';
+  } else if (!clientInitialized) {
+    issue = 'Supabase client failed to initialize';
+  } else {
+    try {
+      // Test basic network connectivity
+      const response = await fetch('https://httpbin.org/get', { 
+        method: 'GET',
+        signal: AbortSignal.timeout(5000)
+      });
+      networkConnectivity = response.ok;
+      
+      if (networkConnectivity) {
+        // Test Supabase auth service
+        authServiceReachable = await testSupabaseConnection();
+        if (!authServiceReachable) {
+          issue = 'Supabase service unreachable';
+        }
+      } else {
+        issue = 'No internet connection';
+      }
+    } catch (err: any) {
+      error = err.message;
+      if (err.name === 'TimeoutError') {
+        issue = 'Connection timeout';
+      } else {
+        issue = 'Network error';
+      }
+    }
+  }
+
+  return {
+    envVarsPresent,
+    urlFormat,
+    clientInitialized,
+    networkConnectivity,
+    authServiceReachable,
+    issue,
+    error
+  };
 }
 
-// Helper function to get or create anonymous preferences (works with both Supabase and local)
-export async function getOrCreatePreferences(name: string, preferences: any) {
+export async function getOrCreatePreferences(name: string, preferences: any): Promise<string | null> {
   // Try Supabase first
   if (supabase) {
     try {
-      // Check for existing stored ID
-      const storedId = getStoredPreferenceId();
-      
-      if (storedId) {
-        // Try to get existing preferences
-        const { data: existing } = await supabase
-          .from('anonymous_preferences')
-          .select('*')
-          .eq('id', storedId)
-          .single();
-
-        if (existing) {
-          // Update last active timestamp
-          await supabase
-            .from('anonymous_preferences')
-            .update({ last_active: new Date().toISOString() })
-            .eq('id', storedId);
-            
-          return storedId;
-        }
-      }
-
-      // Create new anonymous preferences
       const { data, error } = await supabase
-        .from('anonymous_preferences')
-        .insert({
-          name,
-          languages: preferences.languages,
-          content_type: preferences.contentType,
-          series_type: preferences.seriesType,
-          genres: preferences.genres
-        })
+        .from('user_preferences')
+        .insert([{ name, preferences }])
         .select()
         .single();
 
-      if (error) throw error;
-      
-      // Store the new ID
-      if (data) {
-        storePreferenceId(data.id);
+      if (!error && data) {
         return data.id;
       }
     } catch (error) {
-      console.error('Supabase preferences error, falling back to local storage:', error);
+      console.error('Failed to save preferences to Supabase:', error);
     }
   }
 
@@ -236,92 +142,54 @@ export async function getOrCreatePreferences(name: string, preferences: any) {
     created_at: new Date().toISOString()
   };
   
-  localStorage.setItem('local_preferences', JSON.stringify(localPreferences));
-  storePreferenceId(localId);
+  localStorage.setItem(`${LOCAL_PREFERENCES_KEY}_${localId}`, JSON.stringify(localPreferences));
+  localStorage.setItem('current_preference_id', localId);
   
   return localId;
 }
 
-// Helper function to save movie action (works with both Supabase and local)
+export function getStoredPreferenceId(): string | null {
+  return localStorage.getItem('current_preference_id');
+}
+
 export async function saveMovieAction(
   preferenceId: string,
   movieId: number,
-  action: 'like' | 'pass' | 'unwatched',
-  genres: string[],
+  action: string,
+  genres: number[],
   language: string
-) {
+): Promise<void> {
   // Try Supabase first
-  if (supabase && preferenceId && !preferenceId.startsWith('local_')) {
+  if (supabase) {
     try {
-      await supabase.from('anonymous_actions').insert({
-        preference_id: preferenceId,
-        movie_id: movieId,
-        action,
-        genres,
-        language
-      });
-      return;
+      const { error } = await supabase
+        .from('movie_actions')
+        .insert([{
+          preference_id: preferenceId,
+          movie_id: movieId,
+          action,
+          genres,
+          language
+        }]);
+
+      if (!error) {
+        return; // Success with Supabase
+      }
     } catch (error) {
-      console.error('Supabase action save error, falling back to local storage:', error);
+      console.error('Failed to save movie action to Supabase:', error);
     }
   }
 
   // Fallback to local storage
-  const existingActions = JSON.parse(localStorage.getItem('local_actions') || '[]');
-  const newAction = {
+  const localActions = JSON.parse(localStorage.getItem('local_movie_actions') || '[]');
+  localActions.push({
     preference_id: preferenceId,
     movie_id: movieId,
     action,
     genres,
     language,
     created_at: new Date().toISOString()
-  };
+  });
   
-  existingActions.push(newAction);
-  localStorage.setItem('local_actions', JSON.stringify(existingActions));
-}
-
-// Helper function to load existing preferences (works with both Supabase and local)
-export async function loadExistingPreferences() {
-  const storedId = getStoredPreferenceId();
-  if (!storedId) return null;
-
-  // Try Supabase first
-  if (supabase && !storedId.startsWith('local_')) {
-    try {
-      const { data, error } = await supabase
-        .from('anonymous_preferences')
-        .select('*')
-        .eq('id', storedId)
-        .single();
-
-      if (error) throw error;
-      
-      if (data) {
-        return {
-          name: data.name,
-          preferences: {
-            languages: data.languages,
-            contentType: data.content_type,
-            seriesType: data.series_type,
-            genres: data.genres
-          }
-        };
-      }
-    } catch (error) {
-      console.error('Supabase preferences load error, checking local storage:', error);
-    }
-  }
-
-  // Fallback to local storage
-  const localPreferences = localStorage.getItem('local_preferences');
-  if (localPreferences) {
-    const data = JSON.parse(localPreferences);
-    return {
-      name: data.name,
-      preferences: data.preferences
-    };
-  }
-
-  return null;
+  localStorage.setItem('local_movie_actions', JSON.stringify(localActions));
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Lock, Mail, Eye, EyeOff, AlertCircle, RefreshCw, Wifi, WifiOff } from 'lucide-react';
-import { supabase, testSupabaseConnection, diagnoseConnection } from '../lib/supabase';
+import { supabase, testSupabaseConnection, diagnoseConnection, createLocalUser, getLocalUser } from '../lib/supabase';
 
 interface AuthProps {
   onAuthSuccess: (user: any) => void;
@@ -17,9 +17,16 @@ export function Auth({ onAuthSuccess }: AuthProps) {
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'failed'>('checking');
   const [diagnostics, setDiagnostics] = useState<any>(null);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [useLocalAuth, setUseLocalAuth] = useState(false);
 
   useEffect(() => {
     checkConnection();
+    
+    // Check if there's already a local user
+    const localUser = getLocalUser();
+    if (localUser) {
+      onAuthSuccess(localUser);
+    }
   }, []);
 
   const checkConnection = async () => {
@@ -28,7 +35,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
     
     if (!supabase) {
       setConnectionStatus('failed');
-      setError('Supabase client not configured');
+      setUseLocalAuth(true);
       return;
     }
 
@@ -38,107 +45,131 @@ export function Auth({ onAuthSuccess }: AuthProps) {
     if (!isConnected) {
       const diag = await diagnoseConnection();
       setDiagnostics(diag);
+      setUseLocalAuth(true);
       
       if (diag.issue) {
-        setError(`Connection failed: ${diag.issue}. ${diag.error ? `Details: ${diag.error}` : ''}`);
+        setError(`Connection failed: ${diag.issue}. Using offline mode.`);
       } else {
-        setError('Unable to connect to authentication service. Please check your internet connection and try again.');
+        setError('Unable to connect to authentication service. Using offline mode.');
+      }
+    } else {
+      setUseLocalAuth(false);
+    }
+  };
+
+  const handleLocalAuth = async () => {
+    if (!email.trim()) {
+      setError('Please enter an email address');
+      return;
+    }
+
+    if (!isLogin && !name.trim()) {
+      setError('Please enter your name');
+      return;
+    }
+
+    try {
+      const localUser = createLocalUser(email, isLogin ? undefined : name);
+      onAuthSuccess(localUser);
+    } catch (error) {
+      setError('Failed to create local account');
+    }
+  };
+
+  const handleSupabaseAuth = async () => {
+    if (!supabase) {
+      throw new Error('Authentication service not available');
+    }
+
+    if (isLogin) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+      if (data.user) {
+        onAuthSuccess(data.user);
+      }
+    } else {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name,
+          }
+        }
+      });
+
+      if (error) throw error;
+      if (data.user) {
+        onAuthSuccess(data.user);
       }
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supabase) {
-      setError('Authentication service not available');
-      return;
-    }
-
-    if (connectionStatus === 'failed') {
-      setError('Cannot authenticate - connection to service failed. Please refresh the page and try again.');
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
     try {
-      if (isLogin) {
-        console.log('Attempting sign in...');
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) {
-          console.error('Sign in error:', error);
-          throw error;
-        }
-        if (data.user) {
-          console.log('Sign in successful');
-          onAuthSuccess(data.user);
-        }
+      if (useLocalAuth || connectionStatus === 'failed') {
+        await handleLocalAuth();
       } else {
-        console.log('Attempting sign up...');
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              name: name,
-            }
-          }
-        });
-
-        if (error) {
-          console.error('Sign up error:', error);
-          throw error;
-        }
-        if (data.user) {
-          console.log('Sign up successful');
-          onAuthSuccess(data.user);
-        }
+        await handleSupabaseAuth();
       }
     } catch (error: any) {
       console.error('Authentication error:', error);
       
-      // Provide more specific error messages
-      if (error.message?.includes('fetch') || error.message?.includes('Network connection failed')) {
-        setError('Network connection failed. Please check your internet connection and try again.');
-        setConnectionStatus('failed');
-      } else if (error.message?.includes('timeout')) {
-        setError('Request timed out. Please check your internet connection and try again.');
-        setConnectionStatus('failed');
-      } else if (error.message?.includes('Invalid login credentials')) {
-        setError('Invalid email or password. Please check your credentials and try again.');
-      } else if (error.message?.includes('User already registered')) {
-        setError('An account with this email already exists. Please sign in instead.');
-      } else if (error.message?.includes('Email not confirmed')) {
-        setError('Please check your email and click the confirmation link before signing in.');
+      // Check if it's a network-related error and fallback to local auth
+      const isNetworkError = error.message?.includes('fetch') || 
+                           error.message?.includes('Network connection failed') ||
+                           error.message?.includes('timeout') ||
+                           error.name === 'TypeError';
+
+      if (isNetworkError) {
+        console.log('Network error detected, falling back to local authentication');
+        try {
+          await handleLocalAuth();
+          setError('Connected in offline mode. Your preferences will be saved locally.');
+          return;
+        } catch (localError) {
+          setError('Failed to authenticate. Please try again.');
+        }
       } else {
-        setError(error.message || 'Authentication failed. Please try again.');
+        // Handle other authentication errors
+        if (error.message?.includes('Invalid login credentials')) {
+          setError('Invalid email or password. Please check your credentials and try again.');
+        } else if (error.message?.includes('User already registered')) {
+          setError('An account with this email already exists. Please sign in instead.');
+        } else if (error.message?.includes('Email not confirmed')) {
+          setError('Please check your email and click the confirmation link before signing in.');
+        } else {
+          setError(error.message || 'Authentication failed. Please try again.');
+        }
       }
     } finally {
       setLoading(false);
     }
   };
 
-  if (!supabase) {
+  if (!supabase && !useLocalAuth) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center p-4">
         <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 w-full max-w-md text-center">
-          <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-4">Configuration Error</h1>
-          <p className="text-white/80 mb-4">
-            Authentication service is not configured. Please check your environment variables.
+          <AlertCircle className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-white mb-4">Offline Mode</h1>
+          <p className="text-white/80 mb-6">
+            Authentication service is not configured. You can still use the app in offline mode.
           </p>
-          <div className="text-left bg-black/20 rounded-lg p-4 text-sm text-white/70">
-            <p>Missing or invalid:</p>
-            <ul className="list-disc list-inside mt-2">
-              <li>VITE_SUPABASE_URL</li>
-              <li>VITE_SUPABASE_ANON_KEY</li>
-            </ul>
-          </div>
+          <button
+            onClick={() => setUseLocalAuth(true)}
+            className="w-full py-3 px-4 rounded-lg bg-white text-purple-900 font-semibold hover:bg-white/90 transition"
+          >
+            Continue in Offline Mode
+          </button>
         </div>
       </div>
     );
@@ -162,16 +193,16 @@ export function Auth({ onAuthSuccess }: AuthProps) {
           <div className="mt-4 flex items-center justify-center gap-2">
             <div className={`w-2 h-2 rounded-full ${
               connectionStatus === 'checking' ? 'bg-yellow-400 animate-pulse' :
-              connectionStatus === 'connected' ? 'bg-green-400' : 'bg-red-400'
+              connectionStatus === 'connected' ? 'bg-green-400' : 'bg-orange-400'
             }`}></div>
             <span className="text-xs text-white/60">
               {connectionStatus === 'checking' ? 'Connecting...' :
-               connectionStatus === 'connected' ? 'Connected' : 'Connection Failed'}
+               connectionStatus === 'connected' ? 'Online' : 'Offline Mode'}
             </span>
             {connectionStatus === 'connected' ? (
               <Wifi className="h-3 w-3 text-green-400" />
             ) : connectionStatus === 'failed' ? (
-              <WifiOff className="h-3 w-3 text-red-400" />
+              <WifiOff className="h-3 w-3 text-orange-400" />
             ) : null}
           </div>
 
@@ -207,8 +238,17 @@ export function Auth({ onAuthSuccess }: AuthProps) {
                 <li>Auth Service: {diagnostics.authServiceReachable ? '✓' : '✗'}</li>
               </ul>
               {diagnostics.issue && (
-                <p className="mt-2 text-red-300">Issue: {diagnostics.issue}</p>
+                <p className="mt-2 text-orange-300">Issue: {diagnostics.issue}</p>
               )}
+            </div>
+          )}
+
+          {/* Offline mode notice */}
+          {useLocalAuth && (
+            <div className="mt-4 p-3 rounded-lg bg-orange-500/20 border border-orange-500/30">
+              <p className="text-orange-300 text-sm">
+                Running in offline mode. Your preferences will be saved locally.
+              </p>
             </div>
           )}
         </div>
@@ -250,30 +290,32 @@ export function Auth({ onAuthSuccess }: AuthProps) {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-white/80 mb-2">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-white/40" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-12 py-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:outline-none focus:border-white/40 transition"
-                placeholder="Enter your password"
-                required
-                minLength={6}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/40 hover:text-white/60 transition"
-              >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
+          {!useLocalAuth && (
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-white/40" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-12 py-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:outline-none focus:border-white/40 transition"
+                  placeholder="Enter your password"
+                  required={!useLocalAuth}
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/40 hover:text-white/60 transition"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {error && (
             <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/30">
@@ -286,28 +328,34 @@ export function Auth({ onAuthSuccess }: AuthProps) {
 
           <button
             type="submit"
-            disabled={loading || connectionStatus === 'failed'}
+            disabled={loading}
             className="w-full py-3 px-4 rounded-lg bg-white text-purple-900 font-semibold hover:bg-white/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <div className="flex items-center justify-center gap-2">
                 <div className="w-5 h-5 border-2 border-purple-900/20 border-t-purple-900 rounded-full animate-spin"></div>
-                <span>{isLogin ? 'Signing in...' : 'Creating account...'}</span>
+                <span>
+                  {useLocalAuth ? 'Creating local account...' : 
+                   isLogin ? 'Signing in...' : 'Creating account...'}
+                </span>
               </div>
             ) : (
+              useLocalAuth ? 'Continue' :
               isLogin ? 'Sign In' : 'Create Account'
             )}
           </button>
 
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-white/70 hover:text-white transition"
-            >
-              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-            </button>
-          </div>
+          {!useLocalAuth && (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-white/70 hover:text-white transition"
+              >
+                {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>

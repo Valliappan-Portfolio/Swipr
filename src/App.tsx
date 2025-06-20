@@ -9,7 +9,7 @@ import { SurpriseMe } from './components/SurpriseMe';
 import { Auth } from './components/Auth';
 import { getMovies, getTVSeries } from './lib/tmdb';
 import { intelligentRecommendationEngine } from './lib/intelligentRecommendations';
-import { getOrCreatePreferences, saveMovieAction, getStoredPreferenceId } from './lib/supabase';
+import { getOrCreatePreferences, saveMovieAction, getStoredPreferenceId, getLocalUser, signOutLocal } from './lib/supabase';
 import { supabase } from './lib/supabase';
 import type { Movie, MovieActionType, UserPreferences, ViewType } from './types';
 
@@ -50,24 +50,41 @@ function App() {
 
   // Check authentication status
   useEffect(() => {
-    if (!supabase) {
-      setAuthLoading(false);
-      return;
-    }
-
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
+      let authenticatedUser = null;
+
+      // First try Supabase authentication
+      if (supabase) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          authenticatedUser = session?.user || null;
+        } catch (error) {
+          console.error('Supabase auth check failed:', error);
+        }
+      }
+
+      // If no Supabase user, check for local user
+      if (!authenticatedUser) {
+        const localUser = getLocalUser();
+        if (localUser) {
+          authenticatedUser = localUser;
+        }
+      }
+
+      setUser(authenticatedUser);
       setAuthLoading(false);
     };
 
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user || null);
-    });
+    // Set up Supabase auth state listener if available
+    if (supabase) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        setUser(session?.user || null);
+      });
 
-    return () => subscription.unsubscribe();
+      return () => subscription.unsubscribe();
+    }
   }, []);
 
   useEffect(() => {
@@ -93,7 +110,7 @@ function App() {
       const { preferences } = userProfile;
 
       // Use intelligent recommendations if enabled and user has a preference ID
-      if (usePersonalized && useIntelligentRecommendations && preferenceId && user) {
+      if (usePersonalized && useIntelligentRecommendations && preferenceId && user && !user.isLocal) {
         try {
           const personalizedMovies = await intelligentRecommendationEngine.getPersonalizedRecommendations(
             preferenceId,
@@ -196,8 +213,8 @@ function App() {
         currentMovie.language || 'en'
       );
 
-      // Update intelligent recommendation engine
-      if (user && useIntelligentRecommendations) {
+      // Update intelligent recommendation engine (only for non-local users)
+      if (user && useIntelligentRecommendations && !user.isLocal) {
         await intelligentRecommendationEngine.updateUserProfile(
           preferenceId,
           currentMovie.id,
@@ -265,9 +282,18 @@ function App() {
   };
 
   const handleSignOut = async () => {
+    // Sign out from Supabase if available
     if (supabase) {
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut();
+      } catch (error) {
+        console.error('Supabase sign out error:', error);
+      }
     }
+    
+    // Clear local user session
+    signOutLocal();
+    
     setUser(null);
     setUserProfile(null);
     localStorage.clear();
@@ -286,7 +312,7 @@ function App() {
     return <HomePage onStart={handleStartApp} />;
   }
 
-  if (!user && supabase) {
+  if (!user) {
     return <Auth onAuthSuccess={handleAuthSuccess} />;
   }
 
@@ -301,7 +327,7 @@ function App() {
         initialPreferences={userProfile.preferences}
         onSave={handleSettingsSave}
         onBack={() => setCurrentView('swipe')}
-        onSignOut={user ? handleSignOut : undefined}
+        onSignOut={handleSignOut}
       />
     );
   }
@@ -315,13 +341,13 @@ function App() {
             <h1 className="text-lg font-bold text-white">What2WatchNxt</h1>
             {user && (
               <span className="text-xs text-white/60 bg-white/10 px-2 py-1 rounded-full">
-                Smart AI
+                {user.isLocal ? 'Offline' : 'Smart AI'}
               </span>
             )}
           </div>
           
           <div className="flex items-center gap-2">
-            {preferenceId && user && (
+            {preferenceId && user && !user.isLocal && (
               <button
                 onClick={() => setUseIntelligentRecommendations(!useIntelligentRecommendations)}
                 className={`px-3 py-1 rounded-full text-xs transition ${
@@ -372,9 +398,9 @@ function App() {
             ) : (
               <div className="text-center text-white/80">
                 <p className="text-xl">
-                  {user ? 'Loading AI-powered recommendations...' : 'Loading recommendations...'}
+                  {user && !user.isLocal ? 'Loading AI-powered recommendations...' : 'Loading recommendations...'}
                 </p>
-                {useIntelligentRecommendations && user && (
+                {useIntelligentRecommendations && user && !user.isLocal && (
                   <p className="text-sm mt-2">Using machine learning to find movies you'll love</p>
                 )}
               </div>
