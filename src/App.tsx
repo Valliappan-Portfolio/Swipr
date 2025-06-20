@@ -210,7 +210,8 @@ function App() {
         currentMovie.id,
         action,
         currentMovie.genres,
-        currentMovie.language || 'en'
+        currentMovie.language || 'en',
+        user && !user.isLocal ? user.id : undefined
       );
 
       // Update intelligent recommendation engine (only for non-local users)

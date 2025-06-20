@@ -52,7 +52,7 @@ export async function testSupabaseConnection(): Promise<boolean> {
   if (!supabase) return false;
   
   try {
-    const { error } = await supabase.from('user_preferences').select('count').limit(1);
+    const { error } = await supabase.from('anonymous_preferences').select('count').limit(1);
     return !error;
   } catch (error) {
     console.error('Supabase connection test failed:', error);
@@ -120,7 +120,7 @@ export async function getOrCreatePreferences(name: string, preferences: any): Pr
   if (supabase) {
     try {
       const { data, error } = await supabase
-        .from('user_preferences')
+        .from('anonymous_preferences')
         .insert([{ name, preferences }])
         .select()
         .single();
@@ -157,13 +157,32 @@ export async function saveMovieAction(
   movieId: number,
   action: string,
   genres: number[],
-  language: string
+  language: string,
+  authUserId?: string
 ): Promise<void> {
   // Try Supabase first
   if (supabase) {
     try {
-      const { error } = await supabase
-        .from('movie_actions')
+      // Save to movie_actions table for authenticated users
+      if (authUserId) {
+        const { error: movieActionError } = await supabase
+          .from('movie_actions')
+          .insert([{
+            user_id: authUserId,
+            movie_id: movieId,
+            action,
+            genres,
+            language
+          }]);
+
+        if (movieActionError) {
+          console.error('Failed to save to movie_actions:', movieActionError);
+        }
+      }
+
+      // Always save to anonymous_actions for recommendation engine
+      const { error: anonymousActionError } = await supabase
+        .from('anonymous_actions')
         .insert([{
           preference_id: preferenceId,
           movie_id: movieId,
@@ -172,7 +191,7 @@ export async function saveMovieAction(
           language
         }]);
 
-      if (!error) {
+      if (!anonymousActionError) {
         return; // Success with Supabase
       }
     } catch (error) {
