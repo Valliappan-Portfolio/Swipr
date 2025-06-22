@@ -285,7 +285,12 @@ export async function getCurrentUser() {
   try {
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error) {
-      console.error('Error getting current user:', error);
+      // Handle "Auth session missing!" as informational rather than error
+      if (error.message === 'Auth session missing!') {
+        console.log('No active user session found');
+      } else {
+        console.error('Error getting current user:', error);
+      }
       return null;
     }
     return user;
