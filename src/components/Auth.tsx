@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, Lock, Mail, Eye, EyeOff, AlertCircle, RefreshCw, Wifi, WifiOff } from 'lucide-react';
-import { supabase, testSupabaseConnection, diagnoseConnection, createLocalUser, getLocalUser } from '../lib/supabase';
+import { User, Lock, Mail, Eye, EyeOff, AlertCircle, RefreshCw, Wifi, WifiOff, CheckCircle } from 'lucide-react';
+import { supabase, testSupabaseConnection, diagnoseConnection, createLocalUser, getLocalUser, getCurrentUser } from '../lib/supabase';
 
 interface AuthProps {
   onAuthSuccess: (user: any) => void;
@@ -14,46 +14,80 @@ export function Auth({ onAuthSuccess }: AuthProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'failed'>('checking');
   const [diagnostics, setDiagnostics] = useState<any>(null);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [useLocalAuth, setUseLocalAuth] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     checkConnection();
     
-    // Check if there's already a local user
+    // Check for existing authenticated user first
+    checkExistingAuth();
+  }, []);
+
+  const checkExistingAuth = async () => {
+    if (supabase) {
+      try {
+        const user = await getCurrentUser();
+        if (user) {
+          console.log('Found existing authenticated user:', user.email);
+          onAuthSuccess(user);
+          return;
+        }
+      } catch (error) {
+        console.log('No existing authenticated user found');
+      }
+    }
+    
+    // Check for local user as fallback
     const localUser = getLocalUser();
     if (localUser) {
+      console.log('Found local user:', localUser.email);
       onAuthSuccess(localUser);
     }
-  }, []);
+  };
 
   const checkConnection = async () => {
     setConnectionStatus('checking');
     setError(null);
+    setSuccess(null);
     
     if (!supabase) {
       setConnectionStatus('failed');
       setUseLocalAuth(true);
+      setError('Supabase not configured. Using offline mode.');
       return;
     }
 
-    const isConnected = await testSupabaseConnection();
-    setConnectionStatus(isConnected ? 'connected' : 'failed');
-    
-    if (!isConnected) {
-      const diag = await diagnoseConnection();
-      setDiagnostics(diag);
-      setUseLocalAuth(true);
+    try {
+      const isConnected = await testSupabaseConnection();
+      setConnectionStatus(isConnected ? 'connected' : 'failed');
       
-      if (diag.issue) {
-        setError(`Connection failed: ${diag.issue}. Using offline mode.`);
+      if (isConnected) {
+        setUseLocalAuth(false);
+        setSuccess('Connected to authentication service successfully!');
+        setRetryCount(0);
+        // Clear success message after 3 seconds
+        setTimeout(() => setSuccess(null), 3000);
       } else {
-        setError('Unable to connect to authentication service. Using offline mode.');
+        const diag = await diagnoseConnection();
+        setDiagnostics(diag);
+        
+        // Don't immediately fall back to local auth, give user option to retry
+        if (retryCount < 2) {
+          setError(`Connection failed: ${diag.issue}. Click retry or use offline mode.`);
+        } else {
+          setUseLocalAuth(true);
+          setError(`Connection failed after multiple attempts: ${diag.issue}. Using offline mode.`);
+        }
       }
-    } else {
-      setUseLocalAuth(false);
+    } catch (error: any) {
+      console.error('Connection check error:', error);
+      setConnectionStatus('failed');
+      setError('Unable to verify connection. You can retry or use offline mode.');
     }
   };
 
@@ -70,7 +104,8 @@ export function Auth({ onAuthSuccess }: AuthProps) {
 
     try {
       const localUser = createLocalUser(email, isLogin ? undefined : name);
-      onAuthSuccess(localUser);
+      setSuccess('Local account created successfully!');
+      setTimeout(() => onAuthSuccess(localUser), 1000);
     } catch (error) {
       setError('Failed to create local account');
     }
@@ -81,30 +116,44 @@ export function Auth({ onAuthSuccess }: AuthProps) {
       throw new Error('Authentication service not available');
     }
 
+    if (!email.trim()) {
+      throw new Error('Please enter an email address');
+    }
+
+    if (!password.trim()) {
+      throw new Error('Please enter a password');
+    }
+
     if (isLogin) {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
       if (error) throw error;
       if (data.user) {
-        onAuthSuccess(data.user);
+        setSuccess('Signed in successfully!');
+        setTimeout(() => onAuthSuccess(data.user), 1000);
       }
     } else {
+      if (!name.trim()) {
+        throw new Error('Please enter your name');
+      }
+
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: email.trim(),
         password,
         options: {
           data: {
-            name: name,
+            name: name.trim(),
           }
         }
       });
 
       if (error) throw error;
       if (data.user) {
-        onAuthSuccess(data.user);
+        setSuccess('Account created successfully!');
+        setTimeout(() => onAuthSuccess(data.user), 1000);
       }
     }
   };
@@ -113,6 +162,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
       if (useLocalAuth || connectionStatus === 'failed') {
@@ -123,36 +173,35 @@ export function Auth({ onAuthSuccess }: AuthProps) {
     } catch (error: any) {
       console.error('Authentication error:', error);
       
-      // Check if it's a network-related error and fallback to local auth
-      const isNetworkError = error.message?.includes('fetch') || 
-                           error.message?.includes('Network connection failed') ||
-                           error.message?.includes('timeout') ||
-                           error.name === 'TypeError';
-
-      if (isNetworkError) {
-        console.log('Network error detected, falling back to local authentication');
-        try {
-          await handleLocalAuth();
-          setError('Connected in offline mode. Your preferences will be saved locally.');
-          return;
-        } catch (localError) {
-          setError('Failed to authenticate. Please try again.');
-        }
+      // Enhanced error handling with specific messages
+      if (error.message?.includes('Invalid login credentials')) {
+        setError('Invalid email or password. Please check your credentials and try again.');
+      } else if (error.message?.includes('User already registered')) {
+        setError('An account with this email already exists. Please sign in instead.');
+        setIsLogin(true);
+      } else if (error.message?.includes('Email not confirmed')) {
+        setError('Please check your email and click the confirmation link before signing in.');
+      } else if (error.message?.includes('Password should be at least')) {
+        setError('Password must be at least 6 characters long.');
+      } else if (error.message?.includes('fetch') || error.name === 'TypeError') {
+        // Network error - offer fallback
+        setError('Connection lost. Would you like to continue in offline mode?');
+        setTimeout(() => {
+          if (!success) {
+            setUseLocalAuth(true);
+          }
+        }, 3000);
       } else {
-        // Handle other authentication errors
-        if (error.message?.includes('Invalid login credentials')) {
-          setError('Invalid email or password. Please check your credentials and try again.');
-        } else if (error.message?.includes('User already registered')) {
-          setError('An account with this email already exists. Please sign in instead.');
-        } else if (error.message?.includes('Email not confirmed')) {
-          setError('Please check your email and click the confirmation link before signing in.');
-        } else {
-          setError(error.message || 'Authentication failed. Please try again.');
-        }
+        setError(error.message || 'Authentication failed. Please try again.');
       }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRetryConnection = async () => {
+    setRetryCount(prev => prev + 1);
+    await checkConnection();
   };
 
   if (!supabase && !useLocalAuth) {
@@ -160,9 +209,9 @@ export function Auth({ onAuthSuccess }: AuthProps) {
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center p-4">
         <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 w-full max-w-md text-center">
           <AlertCircle className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-4">Offline Mode</h1>
+          <h1 className="text-2xl font-bold text-white mb-4">Setup Required</h1>
           <p className="text-white/80 mb-6">
-            Authentication service is not configured. You can still use the app in offline mode.
+            Authentication service is not configured. You can still use the app in offline mode, but for the best experience with personalized recommendations, please configure Supabase.
           </p>
           <button
             onClick={() => setUseLocalAuth(true)}
@@ -197,7 +246,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
             }`}></div>
             <span className="text-xs text-white/60">
               {connectionStatus === 'checking' ? 'Connecting...' :
-               connectionStatus === 'connected' ? 'Online' : 'Offline Mode'}
+               connectionStatus === 'connected' ? 'Online - Full Features Available' : 'Offline Mode'}
             </span>
             {connectionStatus === 'connected' ? (
               <Wifi className="h-3 w-3 text-green-400" />
@@ -207,14 +256,22 @@ export function Auth({ onAuthSuccess }: AuthProps) {
           </div>
 
           {/* Connection retry button */}
-          {connectionStatus === 'failed' && (
+          {connectionStatus === 'failed' && !useLocalAuth && (
             <div className="mt-2 flex items-center justify-center gap-2">
               <button
-                onClick={checkConnection}
+                onClick={handleRetryConnection}
                 className="text-xs text-white/60 hover:text-white/80 flex items-center gap-1 transition"
+                disabled={loading}
               >
-                <RefreshCw className="h-3 w-3" />
+                <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
                 Retry Connection
+              </button>
+              <span className="text-white/40">|</span>
+              <button
+                onClick={() => setUseLocalAuth(true)}
+                className="text-xs text-white/60 hover:text-white/80 transition"
+              >
+                Use Offline Mode
               </button>
               <span className="text-white/40">|</span>
               <button
@@ -240,14 +297,26 @@ export function Auth({ onAuthSuccess }: AuthProps) {
               {diagnostics.issue && (
                 <p className="mt-2 text-orange-300">Issue: {diagnostics.issue}</p>
               )}
+              {diagnostics.error && (
+                <p className="mt-1 text-red-300 text-xs">Error: {diagnostics.error}</p>
+              )}
             </div>
           )}
 
-          {/* Offline mode notice */}
+          {/* Mode indicators */}
+          {connectionStatus === 'connected' && (
+            <div className="mt-4 p-3 rounded-lg bg-green-500/20 border border-green-500/30">
+              <p className="text-green-300 text-sm flex items-center justify-center gap-2">
+                <CheckCircle className="h-4 w-4" />
+                Connected - Full personalization available
+              </p>
+            </div>
+          )}
+
           {useLocalAuth && (
             <div className="mt-4 p-3 rounded-lg bg-orange-500/20 border border-orange-500/30">
               <p className="text-orange-300 text-sm">
-                Running in offline mode. Your preferences will be saved locally.
+                Offline mode - Limited personalization features
               </p>
             </div>
           )}
@@ -326,6 +395,15 @@ export function Auth({ onAuthSuccess }: AuthProps) {
             </div>
           )}
 
+          {success && (
+            <div className="p-3 rounded-lg bg-green-500/20 border border-green-500/30">
+              <div className="flex items-start gap-2">
+                <CheckCircle className="h-5 w-5 text-green-300 flex-shrink-0 mt-0.5" />
+                <p className="text-green-300 text-sm">{success}</p>
+              </div>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
@@ -340,7 +418,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
                 </span>
               </div>
             ) : (
-              useLocalAuth ? 'Continue' :
+              useLocalAuth ? 'Continue Offline' :
               isLogin ? 'Sign In' : 'Create Account'
             )}
           </button>

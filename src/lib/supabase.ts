@@ -3,8 +3,20 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Enhanced Supabase client with better error handling
 export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'what2watchnxt-web'
+        }
+      }
+    })
   : null;
 
 // Local user management for fallback authentication
@@ -52,11 +64,22 @@ export async function testSupabaseConnection(): Promise<boolean> {
   if (!supabase) return false;
   
   try {
-    const { error } = await supabase.from('anonymous_preferences').select('count').limit(1);
-    return !error;
-  } catch (error) {
+    // Use a simpler test that doesn't require specific tables
+    const { data, error } = await supabase.auth.getSession();
+    
+    // If we can get session info without error, connection is working
+    if (error && error.message.includes('fetch')) {
+      return false;
+    }
+    
+    // Additional test: try to access the auth endpoint directly
+    const { error: healthError } = await supabase.auth.getUser();
+    return !healthError || !healthError.message.includes('fetch');
+    
+  } catch (error: any) {
     console.error('Supabase connection test failed:', error);
-    return false;
+    // Check if it's a network/fetch error specifically
+    return !error.message?.includes('fetch') && !error.name?.includes('TypeError');
   }
 }
 
@@ -78,28 +101,54 @@ export async function diagnoseConnection() {
     issue = 'Supabase client failed to initialize';
   } else {
     try {
-      // Test basic network connectivity
-      const response = await fetch('https://httpbin.org/get', { 
-        method: 'GET',
-        signal: AbortSignal.timeout(5000)
-      });
-      networkConnectivity = response.ok;
+      // Test basic network connectivity with a more reliable endpoint
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      
+      try {
+        const response = await fetch('https://api.github.com/zen', { 
+          method: 'GET',
+          signal: controller.signal,
+          mode: 'cors'
+        });
+        clearTimeout(timeoutId);
+        networkConnectivity = response.ok;
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          issue = 'Connection timeout';
+        } else {
+          networkConnectivity = false;
+        }
+      }
       
       if (networkConnectivity) {
-        // Test Supabase auth service
-        authServiceReachable = await testSupabaseConnection();
-        if (!authServiceReachable) {
-          issue = 'Supabase service unreachable';
+        // Test Supabase auth service with better error handling
+        try {
+          authServiceReachable = await testSupabaseConnection();
+          if (!authServiceReachable) {
+            issue = 'Supabase service unreachable - possible CORS issue';
+          }
+        } catch (supabaseError: any) {
+          authServiceReachable = false;
+          if (supabaseError.message?.includes('fetch')) {
+            issue = 'CORS policy blocking Supabase requests';
+          } else {
+            issue = 'Supabase authentication service error';
+          }
+          error = supabaseError.message;
         }
       } else {
-        issue = 'No internet connection';
+        issue = 'No internet connection detected';
       }
     } catch (err: any) {
       error = err.message;
-      if (err.name === 'TimeoutError') {
+      if (err.name === 'AbortError') {
         issue = 'Connection timeout';
+      } else if (err.message?.includes('fetch')) {
+        issue = 'Network fetch error - check CORS settings';
       } else {
-        issue = 'Network error';
+        issue = 'Network connectivity issue';
       }
     }
   }
@@ -116,7 +165,7 @@ export async function diagnoseConnection() {
 }
 
 export async function getOrCreatePreferences(name: string, preferences: any): Promise<string | null> {
-  // Try Supabase first
+  // Always try Supabase first for better algorithm performance
   if (supabase) {
     try {
       const { data, error } = await supabase
@@ -126,14 +175,18 @@ export async function getOrCreatePreferences(name: string, preferences: any): Pr
         .single();
 
       if (!error && data) {
+        console.log('Preferences saved to Supabase successfully');
         return data.id;
+      } else {
+        console.warn('Failed to save to Supabase, falling back to local:', error);
       }
     } catch (error) {
-      console.error('Failed to save preferences to Supabase:', error);
+      console.error('Supabase preferences save error:', error);
     }
   }
 
-  // Fallback to local storage
+  // Fallback to local storage only if Supabase fails
+  console.log('Using local storage for preferences');
   const localId = `local_pref_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const localPreferences = {
     id: localId,
@@ -160,7 +213,9 @@ export async function saveMovieAction(
   language: string,
   authUserId?: string
 ): Promise<void> {
-  // Try Supabase first
+  let supabaseSuccess = false;
+  
+  // Always prioritize Supabase for better algorithm performance
   if (supabase) {
     try {
       // Save to movie_actions table for authenticated users
@@ -176,7 +231,9 @@ export async function saveMovieAction(
           }]);
 
         if (movieActionError) {
-          console.error('Failed to save to movie_actions:', movieActionError);
+          console.warn('Failed to save to movie_actions:', movieActionError);
+        } else {
+          console.log('Movie action saved to authenticated user table');
         }
       }
 
@@ -192,23 +249,60 @@ export async function saveMovieAction(
         }]);
 
       if (!anonymousActionError) {
+        console.log('Movie action saved to Supabase successfully');
+        supabaseSuccess = true;
         return; // Success with Supabase
+      } else {
+        console.warn('Failed to save to anonymous_actions:', anonymousActionError);
       }
     } catch (error) {
-      console.error('Failed to save movie action to Supabase:', error);
+      console.error('Supabase movie action save error:', error);
     }
   }
 
-  // Fallback to local storage
-  const localActions = JSON.parse(localStorage.getItem('local_movie_actions') || '[]');
-  localActions.push({
-    preference_id: preferenceId,
-    movie_id: movieId,
-    action,
-    genres,
-    language,
-    created_at: new Date().toISOString()
+  // Only use local storage if Supabase completely fails
+  if (!supabaseSuccess) {
+    console.log('Falling back to local storage for movie action');
+    const localActions = JSON.parse(localStorage.getItem('local_movie_actions') || '[]');
+    localActions.push({
+      preference_id: preferenceId,
+      movie_id: movieId,
+      action,
+      genres,
+      language,
+      user_id: authUserId,
+      created_at: new Date().toISOString()
+    });
+    
+    localStorage.setItem('local_movie_actions', JSON.stringify(localActions));
+  }
+}
+
+// Enhanced function to check current authentication status
+export async function getCurrentUser() {
+  if (!supabase) return null;
+  
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
+    return user;
+  } catch (error) {
+    console.error('Failed to get current user:', error);
+    return null;
+  }
+}
+
+// Function to handle authentication state changes
+export function onAuthStateChange(callback: (user: any) => void) {
+  if (!supabase) return () => {};
+  
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    console.log('Auth state changed:', event, session?.user?.email);
+    callback(session?.user || null);
   });
   
-  localStorage.setItem('local_movie_actions', JSON.stringify(localActions));
+  return () => subscription.unsubscribe();
 }
