@@ -184,13 +184,9 @@ export function Auth({ onAuthSuccess }: AuthProps) {
       } else if (error.message?.includes('Password should be at least')) {
         setError('Password must be at least 6 characters long.');
       } else if (error.message?.includes('fetch') || error.name === 'TypeError') {
-        // Network error - offer fallback
-        setError('Connection lost. Would you like to continue in offline mode?');
-        setTimeout(() => {
-          if (!success) {
-            setUseLocalAuth(true);
-          }
-        }, 3000);
+        // Network error - immediately switch to offline mode
+        setError('Connection lost. Continuing in offline mode.');
+        setUseLocalAuth(true);
       } else {
         setError(error.message || 'Authentication failed. Please try again.');
       }
