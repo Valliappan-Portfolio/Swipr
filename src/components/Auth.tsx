@@ -91,6 +91,20 @@ export function Auth({ onAuthSuccess }: AuthProps) {
     }
   };
 
+  const isNetworkError = (error: any): boolean => {
+    const errorMessage = error?.message?.toLowerCase() || '';
+    const errorName = error?.name?.toLowerCase() || '';
+    
+    return (
+      errorMessage.includes('failed to fetch') ||
+      errorMessage.includes('network error') ||
+      errorMessage.includes('fetch') ||
+      errorName.includes('typeerror') ||
+      errorName.includes('networkerror') ||
+      error?.code === 'NETWORK_ERROR'
+    );
+  };
+
   const handleLocalAuth = async () => {
     if (!email.trim()) {
       setError('Please enter an email address');
@@ -173,7 +187,26 @@ export function Auth({ onAuthSuccess }: AuthProps) {
     } catch (error: any) {
       console.error('Authentication error:', error);
       
-      // Enhanced error handling with specific messages
+      // Check if this is a network connectivity error
+      if (isNetworkError(error)) {
+        console.log('Network error detected, switching to offline mode');
+        setConnectionStatus('failed');
+        setUseLocalAuth(true);
+        setError('Connection lost. Switching to offline mode automatically.');
+        
+        // Automatically retry with local auth after a brief delay
+        setTimeout(async () => {
+          try {
+            await handleLocalAuth();
+          } catch (localError) {
+            setError('Failed to create offline account. Please try again.');
+          }
+        }, 1500);
+        
+        return;
+      }
+      
+      // Enhanced error handling with specific messages for non-network errors
       if (error.message?.includes('Invalid login credentials')) {
         setError('Invalid email or password. Please check your credentials and try again.');
       } else if (error.message?.includes('User already registered')) {
@@ -183,10 +216,10 @@ export function Auth({ onAuthSuccess }: AuthProps) {
         setError('Please check your email and click the confirmation link before signing in.');
       } else if (error.message?.includes('Password should be at least')) {
         setError('Password must be at least 6 characters long.');
-      } else if (error.message?.includes('fetch') || error.name === 'TypeError') {
-        // Network error - immediately switch to offline mode
-        setError('Connection lost. Continuing in offline mode.');
-        setUseLocalAuth(true);
+      } else if (error.message?.includes('signup is disabled')) {
+        setError('Account creation is currently disabled. Please contact support.');
+      } else if (error.message?.includes('Email rate limit exceeded')) {
+        setError('Too many requests. Please wait a moment before trying again.');
       } else {
         setError(error.message || 'Authentication failed. Please try again.');
       }
@@ -296,6 +329,15 @@ export function Auth({ onAuthSuccess }: AuthProps) {
               {diagnostics.error && (
                 <p className="mt-1 text-red-300 text-xs">Error: {diagnostics.error}</p>
               )}
+              <div className="mt-3 p-2 bg-blue-500/20 rounded text-blue-300">
+                <p className="font-semibold">Troubleshooting Tips:</p>
+                <ul className="mt-1 text-xs space-y-1">
+                  <li>• Check your Supabase project settings</li>
+                  <li>• Add http://localhost:5173 to allowed origins</li>
+                  <li>• Verify your internet connection</li>
+                  <li>• Disable VPN or proxy if active</li>
+                </ul>
+              </div>
             </div>
           )}
 
