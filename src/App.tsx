@@ -7,6 +7,7 @@ import { Settings } from './components/Settings';
 import { WatchlistView } from './components/WatchlistView';
 import { SurpriseMe } from './components/SurpriseMe';
 import { Auth } from './components/Auth';
+import { ConnectionTest } from './components/ConnectionTest';
 import { getMovies, getTVSeries } from './lib/tmdb';
 import { intelligentRecommendationEngine } from './lib/intelligentRecommendations';
 import { saveUserPreferences, saveMovieAction, getStoredPreferenceId, storePreferenceId, getCurrentUser, signOut, supabase } from './lib/supabase';
@@ -46,6 +47,7 @@ function App() {
   const [unwatchedMovies, setUnwatchedMovies] = useState<Movie[]>([]);
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
   const [useIntelligentRecommendations, setUseIntelligentRecommendations] = useState(true);
+  const [showConnectionTest, setShowConnectionTest] = useState(false);
 
   // Check authentication status
   useEffect(() => {
@@ -345,6 +347,13 @@ function App() {
               </button>
             )}
             <button
+              onClick={() => setShowConnectionTest(true)}
+              className="px-3 py-1 rounded-full text-xs bg-white/20 text-white/60 hover:bg-white/30 transition"
+              title="Test Supabase connection"
+            >
+              Test DB
+            </button>
+            <button
               onClick={() => setCurrentView('settings')}
               className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition"
               title="Settings"
@@ -455,6 +464,10 @@ function App() {
           onClose={() => setShowSurpriseMe(false)}
           preferences={userProfile.preferences}
         />
+      )}
+
+      {showConnectionTest && (
+        <ConnectionTest onClose={() => setShowConnectionTest(false)} />
       )}
     </div>
   );
