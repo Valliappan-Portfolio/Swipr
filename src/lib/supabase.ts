@@ -36,7 +36,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 // Test connection function
 export async function testConnection() {
   try {
-    const { data, error } = await supabase.from('_health').select('*').limit(1);
+    const { data, error } = await supabase.from('anonymous_preferences').select('*').limit(1);
     console.log('Supabase connection test result:', { data, error });
     return { success: !error, error };
   } catch (error) {
