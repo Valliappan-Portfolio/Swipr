@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Lock, Mail, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
-import { signUp, signIn } from '../lib/supabase';
+import { signUp, signIn, testConnection } from '../lib/supabase';
 
 interface AuthProps {
   onAuthSuccess: (user: any) => void;
@@ -15,6 +15,17 @@ export function Auth({ onAuthSuccess }: AuthProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Test connection on component mount
+  React.useEffect(() => {
+    const checkConnection = async () => {
+      const result = await testConnection();
+      if (!result.success) {
+        console.warn('Supabase connection test failed:', result.error);
+      }
+    };
+    checkConnection();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +65,9 @@ export function Auth({ onAuthSuccess }: AuthProps) {
       console.error('Authentication error:', error);
       
       // Handle specific error messages
-      if (error.message?.includes('Invalid login credentials')) {
+      if (error.message?.includes('Failed to fetch')) {
+        setError('Unable to connect to the server. Please check your internet connection and try again. If the problem persists, the service may be temporarily unavailable.');
+      } else if (error.message?.includes('Invalid login credentials')) {
         setError('Invalid email or password. Please check your credentials and try again.');
       } else if (error.message?.includes('User already registered')) {
         setError('An account with this email already exists. Please sign in instead.');
@@ -67,6 +80,8 @@ export function Auth({ onAuthSuccess }: AuthProps) {
         setError('Account creation is currently disabled. Please contact support.');
       } else if (error.message?.includes('Email rate limit exceeded')) {
         setError('Too many requests. Please wait a moment before trying again.');
+      } else if (error.message?.includes('Invalid Supabase URL')) {
+        setError('Configuration error. Please contact support.');
       } else {
         setError(error.message || 'Authentication failed. Please try again.');
       }

@@ -3,8 +3,20 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Debug logging for environment variables
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Anon Key exists:', !!supabaseAnonKey);
+console.log('Supabase Anon Key length:', supabaseAnonKey?.length);
+
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Please check your .env file.');
+}
+
+// Validate URL format
+try {
+  new URL(supabaseUrl);
+} catch (error) {
+  throw new Error(`Invalid Supabase URL format: ${supabaseUrl}`);
 }
 
 // Simple Supabase client configuration
@@ -13,8 +25,25 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'supabase-js-web'
+    }
   }
 });
+
+// Test connection function
+export async function testConnection() {
+  try {
+    const { data, error } = await supabase.from('_health').select('*').limit(1);
+    console.log('Supabase connection test result:', { data, error });
+    return { success: !error, error };
+  } catch (error) {
+    console.error('Supabase connection test failed:', error);
+    return { success: false, error };
+  }
+}
 
 // Simple function to get current user
 export async function getCurrentUser() {
