@@ -9,8 +9,7 @@ import { SurpriseMe } from './components/SurpriseMe';
 import { Auth } from './components/Auth';
 import { getMovies, getTVSeries } from './lib/tmdb';
 import { intelligentRecommendationEngine } from './lib/intelligentRecommendations';
-import { getOrCreatePreferences, saveMovieAction, getStoredPreferenceId, getLocalUser, signOutLocal } from './lib/supabase';
-import { supabase } from './lib/supabase';
+import { saveUserPreferences, saveMovieAction, getStoredPreferenceId, storePreferenceId, getCurrentUser, signOut, supabase } from './lib/supabase';
 import type { Movie, MovieActionType, UserPreferences, ViewType } from './types';
 
 const gradients = [
@@ -51,40 +50,24 @@ function App() {
   // Check authentication status
   useEffect(() => {
     const checkAuth = async () => {
-      let authenticatedUser = null;
-
-      // First try Supabase authentication
-      if (supabase) {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          authenticatedUser = session?.user || null;
-        } catch (error) {
-          console.error('Supabase auth check failed:', error);
-        }
+      try {
+        const authenticatedUser = await getCurrentUser();
+        setUser(authenticatedUser);
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        setUser(null);
       }
-
-      // If no Supabase user, check for local user
-      if (!authenticatedUser) {
-        const localUser = getLocalUser();
-        if (localUser) {
-          authenticatedUser = localUser;
-        }
-      }
-
-      setUser(authenticatedUser);
       setAuthLoading(false);
     };
 
     checkAuth();
 
-    // Set up Supabase auth state listener if available
-    if (supabase) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        setUser(session?.user || null);
-      });
+    // Set up Supabase auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+    });
 
-      return () => subscription.unsubscribe();
-    }
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -246,10 +229,13 @@ function App() {
     setUserProfile(profile);
     localStorage.setItem('userProfile', JSON.stringify(profile));
 
-    // Create preference ID for recommendations
-    const id = await getOrCreatePreferences(name, preferences);
-    if (id) {
+    try {
+      // Save preferences to Supabase
+      const id = await saveUserPreferences(name, preferences);
       setPreferenceId(id);
+      storePreferenceId(id);
+    } catch (error) {
+      console.error('Error saving preferences:', error);
     }
   };
 
@@ -258,10 +244,13 @@ function App() {
     setUserProfile(profile);
     localStorage.setItem('userProfile', JSON.stringify(profile));
 
-    // Update preference ID
-    const id = await getOrCreatePreferences(name, preferences);
-    if (id) {
+    try {
+      // Save updated preferences to Supabase
+      const id = await saveUserPreferences(name, preferences);
       setPreferenceId(id);
+      storePreferenceId(id);
+    } catch (error) {
+      console.error('Error updating preferences:', error);
     }
 
     setMovies([]);
@@ -283,17 +272,11 @@ function App() {
   };
 
   const handleSignOut = async () => {
-    // Sign out from Supabase if available
-    if (supabase) {
-      try {
-        await supabase.auth.signOut();
-      } catch (error) {
-        console.error('Supabase sign out error:', error);
-      }
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
     }
-    
-    // Clear local user session
-    signOutLocal();
     
     setUser(null);
     setUserProfile(null);
@@ -342,13 +325,13 @@ function App() {
             <h1 className="text-lg font-bold text-white">What2WatchNxt</h1>
             {user && (
               <span className="text-xs text-white/60 bg-white/10 px-2 py-1 rounded-full">
-                {user.isLocal ? 'Offline' : 'Smart AI'}
+                Smart AI
               </span>
             )}
           </div>
           
           <div className="flex items-center gap-2">
-            {preferenceId && user && !user.isLocal && (
+            {preferenceId && user && (
               <button
                 onClick={() => setUseIntelligentRecommendations(!useIntelligentRecommendations)}
                 className={`px-3 py-1 rounded-full text-xs transition ${
@@ -399,9 +382,9 @@ function App() {
             ) : (
               <div className="text-center text-white/80">
                 <p className="text-xl">
-                  {user && !user.isLocal ? 'Loading AI-powered recommendations...' : 'Loading recommendations...'}
+                  Loading AI-powered recommendations...
                 </p>
-                {useIntelligentRecommendations && user && !user.isLocal && (
+                {useIntelligentRecommendations && user && (
                   <p className="text-sm mt-2">Using machine learning to find movies you'll love</p>
                 )}
               </div>
