@@ -18,14 +18,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 // Simple function to get current user
 export async function getCurrentUser() {
-  try {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error) throw error;
-    return user;
-  } catch (error) {
-    console.error('Error getting current user:', error);
+  const { data: { user }, error } = await supabase.auth.getUser();
+  
+  if (error) {
+    // Only log unexpected errors, not the expected "Auth session missing!" message
+    if (error.message !== 'Auth session missing!') {
+      console.error('Error getting current user:', error);
+    }
     return null;
   }
+  
+  return user;
 }
 
 // Simple function to sign up
