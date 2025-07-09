@@ -10,7 +10,7 @@ import { Auth } from './components/Auth';
 import { ConnectionTest } from './components/ConnectionTest';
 import { getMovies, getTVSeries } from './lib/tmdb';
 import { intelligentRecommendationEngine } from './lib/intelligentRecommendations';
-import { saveUserPreferences, saveMovieAction, getStoredPreferenceId, storePreferenceId, getCurrentUser, signOut, supabase } from './lib/supabase';
+import { saveUserPreferences, saveMovieAction, getStoredPreferenceId, storePreferenceId } from './lib/supabase';
 import type { Movie, MovieActionType, UserPreferences, ViewType } from './types';
 
 const gradients = [
@@ -25,8 +25,6 @@ const gradients = [
 ];
 
 function App() {
-  const [user, setUser] = useState<any>(null);
-  const [authLoading, setAuthLoading] = useState(true);
   const [showHomePage, setShowHomePage] = useState(() => {
     return !localStorage.getItem('hasSeenHomepage');
   });
@@ -48,29 +46,6 @@ function App() {
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
   const [useIntelligentRecommendations, setUseIntelligentRecommendations] = useState(true);
   const [showConnectionTest, setShowConnectionTest] = useState(false);
-
-  // Check authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const authenticatedUser = await getCurrentUser();
-        setUser(authenticatedUser);
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        setUser(null);
-      }
-      setAuthLoading(false);
-    };
-
-    checkAuth();
-
-    // Set up Supabase auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user || null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   useEffect(() => {
     const savedSeenMovies = localStorage.getItem('seenMovies');
@@ -95,7 +70,7 @@ function App() {
       const { preferences } = userProfile;
 
       // Use intelligent recommendations if enabled and user has a preference ID
-      if (usePersonalized && useIntelligentRecommendations && preferenceId && user && !user.isLocal) {
+      if (usePersonalized && useIntelligentRecommendations && preferenceId) {
         try {
           const personalizedMovies = await intelligentRecommendationEngine.getPersonalizedRecommendations(
             preferenceId,
@@ -172,7 +147,7 @@ function App() {
     setMovies([]);
     setCurrentIndex(0);
     fetchContent(currentPage);
-  }, [userProfile?.preferences, preferenceId, user]);
+  }, [userProfile?.preferences, preferenceId]);
 
   const handleAction = async (action: MovieActionType, movie?: Movie) => {
     if (movies.length === 0 && !movie) return;
@@ -195,12 +170,11 @@ function App() {
         currentMovie.id,
         action,
         currentMovie.genres,
-        currentMovie.language || 'en',
-        user && !user.isLocal ? user.id : undefined
+        currentMovie.language || 'en'
       );
 
-      // Update intelligent recommendation engine (only for non-local users)
-      if (user && useIntelligentRecommendations && !user.isLocal) {
+      // Update intelligent recommendation engine
+      if (useIntelligentRecommendations) {
         await intelligentRecommendationEngine.updateUserProfile(
           preferenceId,
           currentMovie.id,
@@ -269,37 +243,19 @@ function App() {
     setShowHomePage(false);
   };
 
-  const handleAuthSuccess = (authUser: any) => {
-    setUser(authUser);
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
-    
-    setUser(null);
+  const handleResetApp = () => {
     setUserProfile(null);
     localStorage.clear();
     setShowHomePage(true);
+    setMovies([]);
+    setCurrentIndex(0);
+    setSeenMovies(new Set());
+    setCurrentPage(1);
+    setPreferenceId(null);
   };
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-      </div>
-    );
-  }
 
   if (showHomePage) {
     return <HomePage onStart={handleStartApp} />;
-  }
-
-  if (!user) {
-    return <Auth onAuthSuccess={handleAuthSuccess} />;
   }
 
   if (!userProfile) {
@@ -313,7 +269,7 @@ function App() {
         initialPreferences={userProfile.preferences}
         onSave={handleSettingsSave}
         onBack={() => setCurrentView('swipe')}
-        onSignOut={handleSignOut}
+        onSignOut={handleResetApp}
       />
     );
   }
@@ -325,15 +281,13 @@ function App() {
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-white" />
             <h1 className="text-lg font-bold text-white">What2WatchNxt</h1>
-            {user && (
-              <span className="text-xs text-white/60 bg-white/10 px-2 py-1 rounded-full">
-                Smart AI
-              </span>
-            )}
+            <span className="text-xs text-white/60 bg-white/10 px-2 py-1 rounded-full">
+              Smart AI
+            </span>
           </div>
           
           <div className="flex items-center gap-2">
-            {preferenceId && user && (
+            {preferenceId && (
               <button
                 onClick={() => setUseIntelligentRecommendations(!useIntelligentRecommendations)}
                 className={`px-3 py-1 rounded-full text-xs transition ${
@@ -393,7 +347,7 @@ function App() {
                 <p className="text-xl">
                   Loading AI-powered recommendations...
                 </p>
-                {useIntelligentRecommendations && user && (
+                {useIntelligentRecommendations && (
                   <p className="text-sm mt-2">Using machine learning to find movies you'll love</p>
                 )}
               </div>

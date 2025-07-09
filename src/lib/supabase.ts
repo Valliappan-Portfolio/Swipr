@@ -45,73 +45,9 @@ export async function testConnection() {
   }
 }
 
-// Simple function to get current user
-export async function getCurrentUser() {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  
-  if (error) {
-    // Only log unexpected errors, not the expected "Auth session missing!" message
-    if (error.message !== 'Auth session missing!') {
-      console.error('Error getting current user:', error);
-    }
-    return null;
-  }
-  
-  return user;
-}
-
-// Simple function to sign up
-export async function signUp(email: string, password: string, name: string) {
-  try {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          name: name
-        }
-      }
-    });
-    
-    if (error) throw error;
-    return { user: data.user, error: null };
-  } catch (error) {
-    return { user: null, error };
-  }
-}
-
-// Simple function to sign in
-export async function signIn(email: string, password: string) {
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    
-    if (error) throw error;
-    return { user: data.user, error: null };
-  } catch (error) {
-    return { user: null, error };
-  }
-}
-
-// Simple function to sign out
-export async function signOut() {
-  try {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    return { error: null };
-  } catch (error) {
-    return { error };
-  }
-}
-
 // Function to save user preferences
 export async function saveUserPreferences(name: string, preferences: any) {
   try {
-    const user = await getCurrentUser();
-    if (!user) throw new Error('User not authenticated');
-
     const { data, error } = await supabase
       .from('anonymous_preferences')
       .insert([{
@@ -141,9 +77,6 @@ export async function saveMovieAction(
   language: string
 ) {
   try {
-    const user = await getCurrentUser();
-    if (!user) throw new Error('User not authenticated');
-
     const { error } = await supabase
       .from('anonymous_actions')
       .insert([{

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Heart, X, Trash2, Play, ExternalLink } from 'lucide-react';
 import type { Movie } from '../types';
-import { supabase } from '../lib/supabase';
+import { supabase, getStoredPreferenceId } from '../lib/supabase';
 import { getWatchProviders } from '../lib/tmdb';
 
 interface WatchlistViewProps {
@@ -80,24 +80,24 @@ export function WatchlistView({ movies, onUpdate }: WatchlistViewProps) {
   const [selectedMovie, setSelectedMovie] = useState<number | null>(null);
 
   const handleAction = async (movieId: number, action: 'like' | 'pass') => {
-    if (!supabase) return;
+    const preferenceId = getStoredPreferenceId();
+    if (!preferenceId) return;
 
     try {
-      const user = await supabase.auth.getUser();
-      if (!user.data.user) return;
-
       await supabase
-        .from('movie_actions')
+        .from('anonymous_actions')
         .delete()
-        .eq('user_id', user.data.user.id)
+        .eq('preference_id', preferenceId)
         .eq('movie_id', movieId)
         .eq('action', 'unwatched');
 
       if (action !== 'pass') {
-        await supabase.from('movie_actions').insert({
-          user_id: user.data.user.id,
+        await supabase.from('anonymous_actions').insert({
+          preference_id: preferenceId,
           movie_id: movieId,
-          action: action
+          action: action,
+          genres: [],
+          language: 'en'
         });
       }
 
