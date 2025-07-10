@@ -72,6 +72,7 @@ function App() {
       // Use intelligent recommendations if enabled and user has a preference ID
       if (usePersonalized && useIntelligentRecommendations && preferenceId) {
         try {
+          console.log(`🔍 Fetching intelligent recommendations for page ${page}...`);
           const personalizedMovies = await intelligentRecommendationEngine.getPersonalizedRecommendations(
             preferenceId,
             preferences,
@@ -81,11 +82,15 @@ function App() {
           
           if (personalizedMovies.length > 0) {
             allContent = personalizedMovies;
-            console.log(`🎯 Intelligent recommendations loaded: ${personalizedMovies.length} movies`);
+            console.log(`🎯 Intelligent recommendations loaded: ${personalizedMovies.length} movies for page ${page}`);
+            console.log(`📊 User preferences: ${preferences.genres.join(', ')} | Languages: ${preferences.languages.join(', ')}`);
+            console.log(`🎬 Sample movies:`, personalizedMovies.slice(0, 3).map(m => ({ title: m.title, genres: m.genres })));
           }
         } catch (error) {
           console.error('Error getting intelligent recommendations:', error);
+          console.log('🔄 Falling back to regular content fetching...');
           // Fall back to regular content fetching
+          usePersonalized = false; // Disable personalization for this fetch to avoid infinite loop
         }
       }
 
@@ -120,7 +125,7 @@ function App() {
         .filter(item => item && item.id && !seenMovies.has(item.id))
         .filter(item => item.posterPath);
 
-      if (newContent.length === 0 && page < 5) {
+      if (newContent.length === 0 && page < 10) { // Increased from 5 to 10 pages
         return await fetchContent(page + 1, false); // Disable personalization for retry
       }
 
@@ -128,6 +133,8 @@ function App() {
       const shuffledContent = newContent.sort(() => Math.random() - 0.5);
 
       setMovies(prev => [...prev, ...shuffledContent]);
+      
+      console.log(`📈 Total movies loaded: ${movies.length + shuffledContent.length}, New content: ${shuffledContent.length}`);
       
       return shuffledContent.length > 0;
     } catch (error) {
@@ -189,7 +196,7 @@ function App() {
     }
 
     if (!movie && currentIndex >= movies.length - 3 && !isFetching) {
-      const hasMore = await fetchContent(currentPage + 1);
+      const hasMore = await fetchContent(currentPage + 1, true); // Always try personalized first
       if (hasMore) {
         setCurrentPage(prev => prev + 1);
       }

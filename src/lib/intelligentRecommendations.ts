@@ -134,7 +134,7 @@ class IntelligentRecommendationEngine {
       return recommendations.slice(0, 20).map(r => r.movie);
     } catch (error) {
       console.error('Error getting personalized recommendations:', error);
-      return [];
+    return recommendations.slice(0, 50).map(r => r.movie); // Increased from 20 to 50
     }
   }
 
@@ -160,7 +160,12 @@ class IntelligentRecommendationEngine {
       }
     }
 
-    // Filter out seen movies
+    // Filter out seen movies and ensure we have enough content
+    if (allMovies.length < 10 && page < 5) {
+      // Fetch more pages if we don't have enough content
+      const nextPageMovies = await this.getCandidateMovies(preferences, seenMovies, page + 1);
+      allMovies = [...allMovies, ...nextPageMovies];
+    }
     return allMovies.filter(movie => !seenMovies.has(movie.id));
   }
 
@@ -350,7 +355,7 @@ class IntelligentRecommendationEngine {
       if (diverseRecs.length >= 20) break;
     }
 
-    return diverseRecs;
+    return diverseRecs.length > 0 ? diverseRecs : recommendations.slice(0, 20); // Fallback to non-diverse if needed
   }
 
   // Method to update user profile based on new actions

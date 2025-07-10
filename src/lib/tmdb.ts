@@ -54,7 +54,7 @@ export async function getMovies(
       url.searchParams.append('include_adult', 'false');
       url.searchParams.append('page', page.toString());
       url.searchParams.append('with_original_language', language);
-      url.searchParams.append('vote_count.gte', '100');
+      url.searchParams.append('vote_count.gte', '50'); // Reduced from 100 to 50 for more content
 
       if (yearRange) {
         url.searchParams.append('primary_release_date.gte', `${yearRange[0]}-01-01`);
@@ -113,7 +113,7 @@ export async function getMovies(
 
     return {
       results: movies,
-      total_pages: Math.ceil(movies.length / 20)
+      total_pages: 500 // Increased to ensure more pages are available
     };
   } catch (error) {
     console.error('[TMDB] Error fetching movies:', error);
@@ -146,7 +146,9 @@ export async function getTVSeries(
         const genreIds = userGenres
           .map(genre => TV_GENRE_IDS[genre])
           .filter(Boolean);
+        if (genreIds.length > 0) {
         url.searchParams.append('with_genres', genreIds.join('|'));
+        }
       }
 
       const response = await fetch(url.toString());
@@ -194,7 +196,7 @@ export async function getTVSeries(
 
     return {
       results: series,
-      total_pages: Math.ceil(series.length / 20)
+      total_pages: 500 // Increased to ensure more pages are available
     };
   } catch (error) {
     console.error('[TMDB] Error fetching TV series:', error);
