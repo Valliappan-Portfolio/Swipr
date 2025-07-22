@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Heart, X, Trash2, Play, ExternalLink } from 'lucide-react';
 import type { Movie } from '../types';
-import { supabase, getStoredPreferenceId } from '../lib/supabase';
+import { smartRecommendationEngine } from '../lib/smartRecommendations';
 import { getWatchProviders } from '../lib/tmdb';
 
 interface WatchlistViewProps {
@@ -80,25 +80,16 @@ export function WatchlistView({ movies, onUpdate }: WatchlistViewProps) {
   const [selectedMovie, setSelectedMovie] = useState<number | null>(null);
 
   const handleAction = async (movieId: number, action: 'like' | 'pass') => {
-    const preferenceId = getStoredPreferenceId();
-    if (!preferenceId) return;
-
     try {
-      await supabase
-        .from('anonymous_actions')
-        .delete()
-        .eq('preference_id', preferenceId)
-        .eq('movie_id', movieId)
-        .eq('action', 'unwatched');
-
-      if (action !== 'pass') {
-        await supabase.from('anonymous_actions').insert({
-          preference_id: preferenceId,
-          movie_id: movieId,
-          action: action,
-          genres: [],
-          language: 'en'
-        });
+      // Remove from watchlist
+      smartRecommendationEngine.removeFromWatchlist(movieId);
+      
+      // If user liked it, record the action
+      if (action === 'like') {
+        const movie = movies.find(m => m.id === movieId);
+        if (movie) {
+          smartRecommendationEngine.recordSwipe(movie, 'like');
+        }
       }
 
       onUpdate();

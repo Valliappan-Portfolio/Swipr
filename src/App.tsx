@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Film, Settings as SettingsIcon, Share2, ListVideo, Sparkles } from 'lucide-react';
+import { Film, Settings as SettingsIcon, Share2, ListVideo, Sparkles, BarChart3 } from 'lucide-react';
 import { MovieCard } from './components/MovieCard';
 import { HomePage } from './components/HomePage';
 import { Onboarding } from './components/Onboarding';
 import { Settings } from './components/Settings';
 import { WatchlistView } from './components/WatchlistView';
 import { SurpriseMe } from './components/SurpriseMe';
-import { Auth } from './components/Auth';
+import { UserStats } from './components/UserStats';
+import { UndoButton } from './components/UndoButton';
 import { ConnectionTest } from './components/ConnectionTest';
 import { getMovies, getTVSeries } from './lib/tmdb';
 import { intelligentRecommendationEngine } from './lib/intelligentRecommendations';
+import { smartRecommendationEngine } from './lib/smartRecommendations';
 import { saveUserPreferences, saveMovieAction, getStoredPreferenceId, storePreferenceId } from './lib/supabase';
 import type { Movie, MovieActionType, UserPreferences, ViewType } from './types';
 
@@ -46,6 +48,9 @@ function App() {
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
   const [useIntelligentRecommendations, setUseIntelligentRecommendations] = useState(true);
   const [showConnectionTest, setShowConnectionTest] = useState(false);
+  const [showUserStats, setShowUserStats] = useState(false);
+  const [undoInProgress, setUndoInProgress] = useState(false);
+  const [lastUndoMovie, setLastUndoMovie] = useState<Movie | null>(null);
 
   useEffect(() => {
     const savedSeenMovies = localStorage.getItem('seenMovies');
@@ -57,6 +62,10 @@ function App() {
     if (storedId) {
       setPreferenceId(storedId);
     }
+
+    // Load watchlist from smart recommendation engine
+    const watchlist = smartRecommendationEngine.getWatchlist();
+    setUnwatchedMovies(watchlist);
   }, []);
 
   const fetchContent = async (page: number, usePersonalized: boolean = true) => {
@@ -81,7 +90,8 @@ function App() {
           );
           
           if (personalizedMovies.length > 0) {
-            allContent = personalizedMovies;
+            // Apply smart recommendation scoring
+            allContent = smartRecommendationEngine.getPersonalizedRecommendations(personalizedMovies);
             console.log(`🎯 Intelligent recommendations loaded: ${personalizedMovies.length} movies for page ${page}`);
             console.log(`📊 User preferences: ${preferences.genres.join(', ')} | Languages: ${preferences.languages.join(', ')}`);
             console.log(`🎬 Sample movies:`, personalizedMovies.slice(0, 3).map(m => ({ title: m.title, genres: m.genres })));
@@ -118,6 +128,11 @@ function App() {
           if (seriesResponse.results) {
             allContent = [...allContent, ...seriesResponse.results];
           }
+        }
+
+        // Apply smart scoring to regular content too
+        if (allContent.length > 0) {
+          allContent = smartRecommendationEngine.getPersonalizedRecommendations(allContent);
         }
       }
 
@@ -157,9 +172,14 @@ function App() {
   }, [userProfile?.preferences, preferenceId]);
 
   const handleAction = async (action: MovieActionType, movie?: Movie) => {
+    if (undoInProgress) return; // Prevent actions during undo
+    
     if (movies.length === 0 && !movie) return;
     
     const currentMovie = movie || movies[currentIndex];
+
+    // Record swipe in smart recommendation engine
+    smartRecommendationEngine.recordSwipe(currentMovie, action);
     
     setSeenMovies(prev => {
       const next = new Set(prev);
@@ -192,7 +212,8 @@ function App() {
     }
 
     if (action === 'unwatched') {
-      setUnwatchedMovies(prev => [...prev, currentMovie]);
+      // Smart engine already handles watchlist
+      setUnwatchedMovies(smartRecommendationEngine.getWatchlist());
     }
 
     if (!movie && currentIndex >= movies.length - 3 && !isFetching) {
@@ -207,6 +228,38 @@ function App() {
     }
   };
 
+  const handleUndo = () => {
+    if (undoInProgress) return;
+    
+    setUndoInProgress(true);
+    const undoMovie = smartRecommendationEngine.undoLastSwipe();
+    
+    if (undoMovie && currentIndex > 0) {
+      // Move back one movie
+      setCurrentIndex(prev => prev - 1);
+      
+      // Remove from seen movies
+      setSeenMovies(prev => {
+        const next = new Set(prev);
+        next.delete(undoMovie.id);
+        localStorage.setItem('seenMovies', JSON.stringify(Array.from(next)));
+        return next;
+      });
+
+      // Update watchlist
+      setUnwatchedMovies(smartRecommendationEngine.getWatchlist());
+      
+      setLastUndoMovie(undoMovie);
+      
+      // Reset undo state after animation
+      setTimeout(() => {
+        setUndoInProgress(false);
+        setLastUndoMovie(null);
+      }, 500);
+    } else {
+      setUndoInProgress(false);
+    }
+  };
   const handleOnboardingComplete = async (name: string, preferences: UserPreferences) => {
     const profile = { name, preferences };
     setUserProfile(profile);
@@ -251,6 +304,7 @@ function App() {
   };
 
   const handleResetApp = () => {
+    smartRecommendationEngine.clearAllData();
     setUserProfile(null);
     localStorage.clear();
     setShowHomePage(true);
@@ -259,6 +313,7 @@ function App() {
     setSeenMovies(new Set());
     setCurrentPage(1);
     setPreferenceId(null);
+    setUnwatchedMovies([]);
   };
 
   if (showHomePage) {
@@ -315,6 +370,13 @@ function App() {
               Test DB
             </button>
             <button
+              onClick={() => setShowUserStats(true)}
+              className="px-3 py-1 rounded-full text-xs bg-white/20 text-white/60 hover:bg-white/30 transition"
+              title="View your stats"
+            >
+              Stats
+            </button>
+            <button
               onClick={() => setCurrentView('settings')}
               className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition"
               title="Settings"
@@ -347,6 +409,11 @@ function App() {
                       );
                     })}
                   </div>
+                  
+                  <UndoButton 
+                    onUndo={handleUndo} 
+                    disabled={undoInProgress || currentIndex === 0}
+                  />
                 </div>
               </div>
             ) : (
@@ -366,9 +433,7 @@ function App() {
               <WatchlistView
                 movies={unwatchedMovies}
                 onUpdate={() => {
-                  setUnwatchedMovies(prev => 
-                    prev.filter(m => m.id !== movies[currentIndex].id)
-                  );
+                  setUnwatchedMovies(smartRecommendationEngine.getWatchlist());
                 }}
               />
             )}
@@ -407,6 +472,13 @@ function App() {
             <span className="text-sm">Watchlist</span>
           </button>
           <button
+            onClick={() => setShowUserStats(true)}
+            className="flex items-center gap-1 px-3 py-2 rounded-full transition text-white/60 hover:text-white hover:bg-white/10"
+          >
+            <BarChart3 className="h-5 w-5" />
+            <span className="text-sm">Stats</span>
+          </button>
+          <button
             onClick={() => setShowSurpriseMe(true)}
             className={`flex items-center gap-1 px-3 py-2 rounded-full transition ${
               showSurpriseMe
@@ -425,6 +497,10 @@ function App() {
           onClose={() => setShowSurpriseMe(false)}
           preferences={userProfile.preferences}
         />
+      )}
+
+      {showUserStats && (
+        <UserStats onClose={() => setShowUserStats(false)} />
       )}
 
       {showConnectionTest && (
