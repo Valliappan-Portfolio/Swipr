@@ -132,7 +132,16 @@ function App() {
 
         // Apply smart scoring to regular content too
         if (allContent.length > 0) {
+          const originalLength = allContent.length;
           allContent = smartRecommendationEngine.getPersonalizedRecommendations(allContent);
+          console.log('🎯 Smart scoring applied:', {
+            originalMovies: originalLength,
+            scoredMovies: allContent.length,
+            sampleScores: allContent.slice(0, 3).map(m => ({
+              title: m.title,
+              score: smartRecommendationEngine.scoreMovie(m).toFixed(3)
+            }))
+          });
         }
       }
 
@@ -168,7 +177,13 @@ function App() {
     setIsLoading(true);
     setMovies([]);
     setCurrentIndex(0);
-    fetchContent(currentPage);
+    
+    // Load initial content and apply smart scoring
+    fetchContent(currentPage).then(() => {
+      console.log('🧠 Smart recommendation engine initialized');
+      const stats = smartRecommendationEngine.getSessionStats();
+      console.log('📈 Current session stats:', stats);
+    });
   }, [userProfile?.preferences, preferenceId]);
 
   const handleAction = async (action: MovieActionType, movie?: Movie) => {
@@ -178,8 +193,23 @@ function App() {
     
     const currentMovie = movie || movies[currentIndex];
 
-    // Record swipe in smart recommendation engine
+    // Record swipe in smart recommendation engine with detailed logging
+    console.log('🎯 Recording swipe:', {
+      action,
+      movie: currentMovie.title,
+      genres: currentMovie.genres,
+      year: new Date(currentMovie.releaseDate).getFullYear()
+    });
+    
     smartRecommendationEngine.recordSwipe(currentMovie, action);
+    
+    // Log updated preferences
+    const stats = smartRecommendationEngine.getSessionStats();
+    console.log('📊 Updated preferences:', {
+      likedGenres: stats.preferences.likedGenres,
+      totalSwipes: stats.totalSwipes,
+      watchlistSize: stats.watchlistSize
+    });
     
     setSeenMovies(prev => {
       const next = new Set(prev);

@@ -142,8 +142,17 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
     const swipeThreshold = 80; // Reduced threshold for easier swiping
     const velocityThreshold = 300; // Lower velocity threshold
     
+    console.log('👆 Swipe detected:', {
+      movie: movie.title,
+      xOffset,
+      yOffset,
+      velocity,
+      direction: info.offset.y < -swipeThreshold ? 'up' : info.offset.x > 0 ? 'right' : 'left'
+    });
+    
     // Check for upward swipe first (unwatched action)
     if (info.offset.y < -swipeThreshold || (info.velocity.y < -velocityThreshold && yOffset > 30)) {
+      console.log('📚 Adding to watchlist:', movie.title);
       await controls.start({ 
         y: -300, 
         opacity: 0,
@@ -154,12 +163,14 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
     // Check for horizontal swipes (like/pass)
     else if (xOffset > swipeThreshold || Math.abs(info.velocity.x) > velocityThreshold) {
       const direction = info.offset.x > 0 ? 1 : -1;
+      const action = direction > 0 ? 'like' : 'pass';
+      console.log(`${action === 'like' ? '❤️' : '👎'} ${action}:`, movie.title);
       await controls.start({ 
         x: direction * 300,
         opacity: 0,
         transition: { duration: 0.3, type: "spring", velocity: Math.abs(info.velocity.x) }
       });
-      onAction(direction > 0 ? 'like' : 'pass');
+      onAction(action);
     }
     // Return to center if no action triggered
     else {

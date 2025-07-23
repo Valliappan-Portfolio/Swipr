@@ -105,15 +105,20 @@ class SmartRecommendationEngine {
 
   scoreMovie(movie: Movie): number {
     const prefs = this.userSession.preferences;
-    let score = Math.random() * 0.3; // Base randomness (30%)
+    let score = 0.5; // Base score
+    let scoreBreakdown = { base: 0.5, genre: 0, year: 0, rating: 0 };
 
     // Genre preferences (major factor - 40% weight)
     movie.genres.forEach(genre => {
       if (prefs.likedGenres.includes(genre)) {
-        score += 0.4;
+        const boost = 0.4;
+        score += boost;
+        scoreBreakdown.genre += boost;
       }
       if (prefs.dislikedGenres.includes(genre)) {
-        score -= 0.6;
+        const penalty = -0.6;
+        score += penalty;
+        scoreBreakdown.genre += penalty;
       }
     });
 
@@ -121,31 +126,60 @@ class SmartRecommendationEngine {
     const movieYear = new Date(movie.releaseDate).getFullYear();
     const movieDecade = Math.floor(movieYear / 10) * 10;
     if (prefs.preferredDecades.includes(movieDecade)) {
-      score += 0.2;
+      const boost = 0.2;
+      score += boost;
+      scoreBreakdown.year += boost;
     }
 
     // Rating preferences (10% weight)
     if (movie.voteAverage >= prefs.averageRatingPreference) {
-      score += 0.1;
+      const boost = 0.1;
+      score += boost;
+      scoreBreakdown.rating += boost;
     }
 
     // Boost for highly rated movies
     if (movie.voteAverage >= 8.0) {
-      score += 0.1;
+      const boost = 0.1;
+      score += boost;
+      scoreBreakdown.rating += boost;
     }
 
     // Slight penalty for very old movies unless user likes them
     if (movieYear < 2000 && !prefs.preferredDecades.some(d => d < 2000)) {
-      score -= 0.1;
+      const penalty = -0.1;
+      score += penalty;
+      scoreBreakdown.year += penalty;
     }
 
-    return Math.max(0, Math.min(1, score)); // Clamp between 0-1
+    const finalScore = Math.max(0, Math.min(1, score));
+    
+    // Log detailed scoring for first few movies or when score is interesting
+    if (Math.random() < 0.1 || finalScore > 0.8 || finalScore < 0.3) {
+      console.log('🎯 Movie scoring:', {
+        movie: movie.title,
+        genres: movie.genres,
+        year: movieYear,
+        rating: movie.voteAverage,
+        scoreBreakdown,
+        finalScore: finalScore.toFixed(3)
+      });
+    }
+    
+    return finalScore;
   }
 
   recordSwipe(movie: Movie, action: 'like' | 'pass' | 'unwatched'): void {
     const movieYear = new Date(movie.releaseDate).getFullYear();
     const movieDecade = Math.floor(movieYear / 10) * 10;
 
+    console.log('🎬 Processing swipe:', {
+      movie: movie.title,
+      action,
+      genres: movie.genres,
+      year: movieYear,
+      decade: movieDecade
+    });
     // Record the swipe
     const swipeAction: SwipeAction = {
       movieId: movie.id,
@@ -178,6 +212,12 @@ class SmartRecommendationEngine {
     // Update preferences based on action
     this.updatePreferences(movie, action, movieDecade);
 
+    console.log('🧠 Preferences updated:', {
+      likedGenres: this.userSession.preferences.likedGenres,
+      dislikedGenres: this.userSession.preferences.dislikedGenres,
+      preferredDecades: this.userSession.preferences.preferredDecades,
+      averageRating: this.userSession.preferences.averageRatingPreference.toFixed(1)
+    });
     // Add to watchlist if unwatched
     if (action === 'unwatched') {
       this.addToWatchlist(movie);
@@ -185,12 +225,11 @@ class SmartRecommendationEngine {
 
     this.saveUserSession();
 
-    console.log('🎯 Swipe recorded:', {
-      action,
-      movie: movie.title,
-      newScore: this.scoreMovie(movie).toFixed(2),
-      likedGenres: this.userSession.preferences.likedGenres,
-      totalSwipes: this.userSession.sessionStats.totalSwipes
+    console.log('💾 Session saved:', {
+      totalSwipes: this.userSession.sessionStats.totalSwipes,
+      likesCount: this.userSession.sessionStats.likesCount,
+      watchlistSize: this.userSession.watchlist.length,
+      newMovieScore: this.scoreMovie(movie).toFixed(3)
     });
   }
 
