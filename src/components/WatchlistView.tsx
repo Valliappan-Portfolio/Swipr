@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
-import { Heart, X, Trash2, Play, ExternalLink } from 'lucide-react';
+import { Heart, X, Trash2, Play, ExternalLink, Users, Calendar, Clock, Star } from 'lucide-react';
 import type { Movie } from '../types';
 import { smartRecommendationEngine } from '../lib/smartRecommendations';
-import { getWatchProviders } from '../lib/tmdb';
+import { getWatchProviders, getMovieDetails } from '../lib/tmdb';
 
 interface WatchlistViewProps {
   movies: Movie[];
   onUpdate: () => void;
+}
+
+interface MovieDetails {
+  cast: { name: string; character: string; profilePath: string | null }[];
+  crew: { name: string; job: string }[];
+  runtime: number;
 }
 
 interface StreamingInfo {
@@ -77,6 +83,8 @@ const PROVIDER_URLS: { [key: number]: { url: string; regions?: { [key: string]: 
 export function WatchlistView({ movies, onUpdate }: WatchlistViewProps) {
   const [streamingInfo, setStreamingInfo] = useState<{ [key: number]: StreamingInfo }>({});
   const [loadingProviders, setLoadingProviders] = useState<{ [key: number]: boolean }>({});
+  const [movieDetails, setMovieDetails] = useState<{ [key: number]: MovieDetails }>({});
+  const [loadingDetails, setLoadingDetails] = useState<{ [key: number]: boolean }>({});
   const [selectedMovie, setSelectedMovie] = useState<number | null>(null);
 
   const handleAction = async (movieId: number, action: 'like' | 'pass') => {
@@ -112,6 +120,28 @@ export function WatchlistView({ movies, onUpdate }: WatchlistViewProps) {
     }
   };
 
+  const fetchMovieDetails = async (movieId: number, type: 'movie' | 'tv') => {
+    if (movieDetails[movieId] || loadingDetails[movieId]) return;
+
+    setLoadingDetails(prev => ({ ...prev, [movieId]: true }));
+    try {
+      const details = await getMovieDetails(movieId, type);
+      if (details) {
+        setMovieDetails(prev => ({ 
+          ...prev, 
+          [movieId]: {
+            cast: details.cast,
+            crew: details.crew,
+            runtime: details.runtime
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching movie details:', error);
+    } finally {
+      setLoadingDetails(prev => ({ ...prev, [movieId]: false }));
+    }
+  };
   const handleProviderClick = (providerId: number, region: string = 'IN') => {
     const providerConfig = PROVIDER_URLS[providerId];
     if (!providerConfig) return;
@@ -166,6 +196,62 @@ export function WatchlistView({ movies, onUpdate }: WatchlistViewProps) {
     );
   };
 
+  const renderMovieDetails = (movieId: number) => {
+    const details = movieDetails[movieId];
+    if (!details) return null;
+
+    return (
+      <div className="mt-4 space-y-3">
+        {/* Runtime */}
+        {details.runtime && (
+          <div className="flex items-center gap-2 text-sm text-white/80">
+            <Clock className="h-4 w-4" />
+            <span>{details.runtime} minutes</span>
+          </div>
+        )}
+
+        {/* Cast */}
+        {details.cast.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="h-4 w-4 text-white/60" />
+              <span className="text-sm font-medium text-white/80">Cast</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {details.cast.map(actor => (
+                <span
+                  key={actor.name}
+                  className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded-full"
+                >
+                  {actor.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Crew */}
+        {details.crew.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Calendar className="h-4 w-4 text-white/60" />
+              <span className="text-sm font-medium text-white/80">Crew</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {details.crew.map(person => (
+                <span
+                  key={`${person.name}-${person.job}`}
+                  className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded-full"
+                >
+                  {person.name} ({person.job})
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
   if (movies.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-white/80">
@@ -183,6 +269,7 @@ export function WatchlistView({ movies, onUpdate }: WatchlistViewProps) {
           className="bg-white/10 backdrop-blur-sm rounded-lg overflow-hidden cursor-pointer transition hover:bg-white/20"
           onClick={() => {
             fetchStreamingInfo(movie.id, movie.type);
+            fetchMovieDetails(movie.id, movie.type);
             setSelectedMovie(selectedMovie === movie.id ? null : movie.id);
           }}
         >
@@ -206,6 +293,18 @@ export function WatchlistView({ movies, onUpdate }: WatchlistViewProps) {
                 </span>
               </div>
 
+              {/* Show expanded details when selected */}
+              {selectedMovie === movie.id && (
+                <>
+                  {loadingDetails[movie.id] ? (
+                    <div className="mt-3 text-sm text-white/60">
+                      Loading details...
+                    </div>
+                  ) : (
+                    renderMovieDetails(movie.id)
+                  )}
+                </>
+              )}
               {loadingProviders[movie.id] ? (
                 <div className="mt-3 text-sm text-white/60">
                   Loading streaming info...

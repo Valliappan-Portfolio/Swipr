@@ -57,8 +57,11 @@ export async function getMovies(
       url.searchParams.append('vote_count.gte', '50'); // Reduced from 100 to 50 for more content
 
       if (yearRange) {
-        url.searchParams.append('primary_release_date.gte', `${yearRange[0]}-01-01`);
-        url.searchParams.append('primary_release_date.lte', `${yearRange[1]}-12-31`);
+        // Add 2-year tolerance as requested
+        const startYear = Math.max(1900, yearRange[0] - 2);
+        const endYear = Math.min(new Date().getFullYear(), yearRange[1] + 2);
+        url.searchParams.append('primary_release_date.gte', `${startYear}-01-01`);
+        url.searchParams.append('primary_release_date.lte', `${endYear}-12-31`);
       }
       
       if (userGenres.length > 0) {
@@ -92,8 +95,8 @@ export async function getMovies(
         const hasValidTitle = !!movie.title;
         const isCorrectLanguage = languages.includes(movie.original_language);
         const isInYearRange = !yearRange || (
-          new Date(movie.release_date).getFullYear() >= yearRange[0] &&
-          new Date(movie.release_date).getFullYear() <= yearRange[1]
+          new Date(movie.release_date).getFullYear() >= (yearRange[0] - 2) &&
+          new Date(movie.release_date).getFullYear() <= (yearRange[1] + 2)
         );
         return hasValidPoster && hasValidTitle && isCorrectLanguage && isInYearRange;
       })
@@ -138,8 +141,11 @@ export async function getTVSeries(
       url.searchParams.append('with_original_language', language);
       
       if (yearRange) {
-        url.searchParams.append('first_air_date.gte', `${yearRange[0]}-01-01`);
-        url.searchParams.append('first_air_date.lte', `${yearRange[1]}-12-31`);
+        // Add 2-year tolerance as requested
+        const startYear = Math.max(1900, yearRange[0] - 2);
+        const endYear = Math.min(new Date().getFullYear(), yearRange[1] + 2);
+        url.searchParams.append('first_air_date.gte', `${startYear}-01-01`);
+        url.searchParams.append('first_air_date.lte', `${endYear}-12-31`);
       }
 
       if (userGenres.length > 0) {
@@ -175,8 +181,8 @@ export async function getTVSeries(
         const hasValidTitle = !!show.name;
         const isCorrectLanguage = languages.includes(show.original_language);
         const isInYearRange = !yearRange || (
-          new Date(show.first_air_date).getFullYear() >= yearRange[0] &&
-          new Date(show.first_air_date).getFullYear() <= yearRange[1]
+          new Date(show.first_air_date).getFullYear() >= (yearRange[0] - 2) &&
+          new Date(show.first_air_date).getFullYear() <= (yearRange[1] + 2)
         );
         return hasValidPoster && hasValidTitle && isCorrectLanguage && isInYearRange;
       })
@@ -204,6 +210,49 @@ export async function getTVSeries(
   }
 }
 
+// Function to get detailed movie information including cast and crew
+export async function getMovieDetails(movieId: number, type: 'movie' | 'tv' = 'movie') {
+  try {
+    const endpoint = type === 'movie' ? 'movie' : 'tv';
+    const url = `${TMDB_BASE_URL}/${endpoint}/${movieId}?api_key=${TMDB_API_KEY}&append_to_response=credits,videos`;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status}`);
+    }
+    
+    return {
+      id: data.id,
+      title: type === 'movie' ? data.title : data.name,
+      overview: data.overview,
+      runtime: data.runtime || (data.episode_run_time && data.episode_run_time[0]),
+      releaseDate: type === 'movie' ? data.release_date : data.first_air_date,
+      voteAverage: data.vote_average,
+      genres: data.genres?.map((g: any) => g.name) || [],
+      cast: data.credits?.cast?.slice(0, 6).map((person: any) => ({
+        id: person.id,
+        name: person.name,
+        character: person.character,
+        profilePath: person.profile_path
+      })) || [],
+      crew: data.credits?.crew?.filter((person: any) => 
+        ['Director', 'Producer', 'Writer'].includes(person.job)
+      ).slice(0, 4).map((person: any) => ({
+        id: person.id,
+        name: person.name,
+        job: person.job
+      })) || [],
+      videos: data.videos?.results?.filter((video: any) => 
+        video.type === 'Trailer' && video.site === 'YouTube'
+      ).slice(0, 1) || []
+    };
+  } catch (error) {
+    console.error('[TMDB] Error fetching movie details:', error);
+    return null;
+  }
+}
 const GENRE_IDS: { [key: string]: number } = {
   'Action': 28,
   'Adventure': 12,
