@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Film, Settings as SettingsIcon, Share2, ListVideo, Sparkles, BarChart3 } from 'lucide-react';
 import { MovieCard } from './components/MovieCard';
 import { HomePage } from './components/HomePage';
+import { Auth } from './components/Auth';
 import { Onboarding } from './components/Onboarding';
 import { Settings } from './components/Settings';
 import { WatchlistView } from './components/WatchlistView';
@@ -12,7 +13,7 @@ import { ConnectionTest } from './components/ConnectionTest';
 import { getMovies, getTVSeries } from './lib/tmdb';
 import { intelligentRecommendationEngine } from './lib/intelligentRecommendations';
 import { smartRecommendationEngine } from './lib/smartRecommendations';
-import { saveUserPreferences, saveMovieAction, getStoredPreferenceId, storePreferenceId } from './lib/supabase';
+import { saveUserPreferences, saveMovieAction, getStoredPreferenceId, storePreferenceId, getStoredUserId, storeUserId, getStoredUsername, storeUsername } from './lib/supabase';
 import type { Movie, MovieActionType, UserPreferences, ViewType } from './types';
 
 const gradients = [
@@ -46,6 +47,8 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [unwatchedMovies, setUnwatchedMovies] = useState<Movie[]>([]);
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
   const [useIntelligentRecommendations, setUseIntelligentRecommendations] = useState(true);
   const [showConnectionTest, setShowConnectionTest] = useState(false);
   const [showUserStats, setShowUserStats] = useState(false);
@@ -61,6 +64,16 @@ function App() {
     const storedId = getStoredPreferenceId();
     if (storedId) {
       setPreferenceId(storedId);
+    }
+
+    const storedUserId = getStoredUserId();
+    if (storedUserId) {
+      setUserId(storedUserId);
+    }
+
+    const storedUsername = getStoredUsername();
+    if (storedUsername) {
+      setUsername(storedUsername);
     }
 
     // Load watchlist from smart recommendation engine
@@ -221,8 +234,9 @@ function App() {
     setCurrentGradient(prev => (prev + 1) % gradients.length);
 
     // Save action to database for recommendations
-    if (preferenceId) {
+    if (userId && preferenceId) {
       await saveMovieAction(
+        userId,
         preferenceId,
         currentMovie.id,
         action,
@@ -296,10 +310,11 @@ function App() {
     localStorage.setItem('userProfile', JSON.stringify(profile));
 
     try {
-      // Save preferences to Supabase
-      const id = await saveUserPreferences(name, preferences);
-      setPreferenceId(id);
-      storePreferenceId(id);
+      if (userId) {
+        const id = await saveUserPreferences(userId, name, preferences);
+        setPreferenceId(id);
+        storePreferenceId(id);
+      }
     } catch (error) {
       console.error('Error saving preferences:', error);
     }
@@ -311,10 +326,11 @@ function App() {
     localStorage.setItem('userProfile', JSON.stringify(profile));
 
     try {
-      // Save updated preferences to Supabase
-      const id = await saveUserPreferences(name, preferences);
-      setPreferenceId(id);
-      storePreferenceId(id);
+      if (userId) {
+        const id = await saveUserPreferences(userId, name, preferences);
+        setPreferenceId(id);
+        storePreferenceId(id);
+      }
     } catch (error) {
       console.error('Error updating preferences:', error);
     }
@@ -343,11 +359,26 @@ function App() {
     setSeenMovies(new Set());
     setCurrentPage(1);
     setPreferenceId(null);
+    setUserId(null);
+    setUsername(null);
     setUnwatchedMovies([]);
   };
 
   if (showHomePage) {
     return <HomePage onStart={handleStartApp} />;
+  }
+
+  if (!userId || !username) {
+    return (
+      <Auth
+        onAuthSuccess={(user) => {
+          setUserId(user.id);
+          setUsername(user.username);
+          storeUserId(user.id);
+          storeUsername(user.username);
+        }}
+      />
+    );
   }
 
   if (!userProfile) {

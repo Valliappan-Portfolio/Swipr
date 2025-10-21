@@ -1,22 +1,17 @@
 import React, { useState } from 'react';
-import { User, Lock, Mail, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
-import { signUp, signIn, testConnection } from '../lib/supabase';
+import { User, AlertCircle, CheckCircle } from 'lucide-react';
+import { getOrCreateUser, testConnection } from '../lib/supabase';
 
 interface AuthProps {
   onAuthSuccess: (user: any) => void;
 }
 
 export function Auth({ onAuthSuccess }: AuthProps) {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Test connection on component mount
   React.useEffect(() => {
     const checkConnection = async () => {
       const result = await testConnection();
@@ -34,56 +29,38 @@ export function Auth({ onAuthSuccess }: AuthProps) {
     setSuccess(null);
 
     try {
-      if (!email.trim()) {
-        throw new Error('Please enter an email address');
+      const trimmedUsername = username.trim().toLowerCase();
+
+      if (!trimmedUsername) {
+        throw new Error('Please enter a username');
       }
 
-      if (!password.trim()) {
-        throw new Error('Please enter a password');
+      if (trimmedUsername.length < 3) {
+        throw new Error('Username must be at least 3 characters long');
       }
 
-      if (!isLogin && !name.trim()) {
-        throw new Error('Please enter your name');
+      if (!/^[a-z0-9_]+$/.test(trimmedUsername)) {
+        throw new Error('Username can only contain lowercase letters, numbers, and underscores');
       }
 
-      let result;
-      if (isLogin) {
-        result = await signIn(email.trim(), password);
-      } else {
-        result = await signUp(email.trim(), password, name.trim());
-      }
+      const result = await getOrCreateUser(trimmedUsername);
 
       if (result.error) {
         throw result.error;
       }
 
       if (result.user) {
-        setSuccess(isLogin ? 'Signed in successfully!' : 'Account created successfully!');
-        setTimeout(() => onAuthSuccess(result.user), 1000);
+        const isNewUser = result.isNewUser;
+        setSuccess(isNewUser ? 'Welcome! Getting started...' : 'Welcome back!');
+        setTimeout(() => onAuthSuccess(result.user), 800);
       }
     } catch (error: any) {
       console.error('Authentication error:', error);
-      
-      // Handle specific error messages
+
       if (error.message?.includes('Failed to fetch')) {
-        setError('Unable to connect to the server. Please check your internet connection and try again. If the problem persists, the service may be temporarily unavailable.');
-      } else if (error.message?.includes('Invalid login credentials')) {
-        setError('Invalid email or password. Please check your credentials and try again.');
-      } else if (error.message?.includes('User already registered')) {
-        setError('An account with this email already exists. Please sign in instead.');
-        setIsLogin(true);
-      } else if (error.message?.includes('Email not confirmed')) {
-        setError('Please check your email and click the confirmation link before signing in.');
-      } else if (error.message?.includes('Password should be at least')) {
-        setError('Password must be at least 6 characters long.');
-      } else if (error.message?.includes('signup is disabled')) {
-        setError('Account creation is currently disabled. Please contact support.');
-      } else if (error.message?.includes('Email rate limit exceeded')) {
-        setError('Too many requests. Please wait a moment before trying again.');
-      } else if (error.message?.includes('Invalid Supabase URL')) {
-        setError('Configuration error. Please contact support.');
+        setError('Unable to connect. Please check your connection and try again.');
       } else {
-        setError(error.message || 'Authentication failed. Please try again.');
+        setError(error.message || 'Something went wrong. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -91,7 +68,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-cyan-900 to-slate-900 flex items-center justify-center p-4">
       <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 mb-4">
@@ -101,70 +78,35 @@ export function Auth({ onAuthSuccess }: AuthProps) {
             Welcome to What2WatchNxt
           </h1>
           <p className="text-white/70">
-            {isLogin ? 'Sign in to get personalized recommendations' : 'Create an account to start discovering'}
+            Choose a username to get started
+          </p>
+          <p className="text-white/50 text-sm mt-2">
+            No password needed - just pick a unique username
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {!isLogin && (
-            <div>
-              <label className="block text-sm font-medium text-white/80 mb-2">
-                Full Name
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-white/40" />
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:outline-none focus:border-white/40 transition"
-                  placeholder="Enter your full name"
-                  required={!isLogin}
-                />
-              </div>
-            </div>
-          )}
-
           <div>
             <label className="block text-sm font-medium text-white/80 mb-2">
-              Email Address
+              Username
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-white/40" />
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-white/40" />
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:outline-none focus:border-white/40 transition"
-                placeholder="Enter your email"
+                placeholder="Choose a username"
                 required
+                minLength={3}
+                pattern="[a-z0-9_]+"
+                autoComplete="off"
               />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-white/80 mb-2">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-white/40" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-12 py-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:outline-none focus:border-white/40 transition"
-                placeholder="Enter your password"
-                required
-                minLength={6}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/40 hover:text-white/60 transition"
-              >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
-            </div>
+            <p className="text-white/50 text-xs mt-2">
+              Letters, numbers, and underscores only (min 3 characters)
+            </p>
           </div>
 
           {error && (
@@ -188,26 +130,22 @@ export function Auth({ onAuthSuccess }: AuthProps) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 rounded-lg bg-white text-purple-900 font-semibold hover:bg-white/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 px-4 rounded-lg bg-white text-cyan-900 font-semibold hover:bg-white/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <div className="flex items-center justify-center gap-2">
-                <div className="w-5 h-5 border-2 border-purple-900/20 border-t-purple-900 rounded-full animate-spin"></div>
-                <span>{isLogin ? 'Signing in...' : 'Creating account...'}</span>
+                <div className="w-5 h-5 border-2 border-cyan-900/20 border-t-cyan-900 rounded-full animate-spin"></div>
+                <span>Connecting...</span>
               </div>
             ) : (
-              isLogin ? 'Sign In' : 'Create Account'
+              'Continue'
             )}
           </button>
 
           <div className="text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-white/70 hover:text-white transition"
-            >
-              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-            </button>
+            <p className="text-white/60 text-xs">
+              Your preferences will be saved and used to recommend movies to others
+            </p>
           </div>
         </form>
       </div>
