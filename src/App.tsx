@@ -410,33 +410,6 @@ function App() {
           </div>
           
           <div className="flex items-center gap-2">
-            {preferenceId && (
-              <button
-                onClick={() => setUseIntelligentRecommendations(!useIntelligentRecommendations)}
-                className={`px-3 py-1 rounded-full text-xs transition ${
-                  useIntelligentRecommendations
-                    ? 'bg-green-500/20 text-green-300'
-                    : 'bg-white/20 text-white/60'
-                }`}
-                title="Toggle intelligent recommendations"
-              >
-                {useIntelligentRecommendations ? 'AI On' : 'AI Off'}
-              </button>
-            )}
-            <button
-              onClick={() => setShowConnectionTest(true)}
-              className="px-3 py-1 rounded-full text-xs bg-white/20 text-white/60 hover:bg-white/30 transition"
-              title="Test Supabase connection"
-            >
-              Test DB
-            </button>
-            <button
-              onClick={() => setShowUserStats(true)}
-              className="px-3 py-1 rounded-full text-xs bg-white/20 text-white/60 hover:bg-white/30 transition"
-              title="View your stats"
-            >
-              Stats
-            </button>
             <button
               onClick={() => setCurrentView('settings')}
               className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition"
