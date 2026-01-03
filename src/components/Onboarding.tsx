@@ -21,19 +21,22 @@ const currentYear = new Date().getFullYear();
 export function Onboarding({ onComplete }: OnboardingProps) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
-  const [vibe, setVibe] = useState<Vibe | null>(null);
+  const [vibes, setVibes] = useState<Vibe[]>([]);
   const [timeCommitment, setTimeCommitment] = useState<TimeCommitment | null>(null);
   const [languages, setLanguages] = useState<MovieLanguage[]>(['en']);
   const [era, setEra] = useState<'modern' | 'classic' | 'any'>('modern');
 
   const handleComplete = () => {
-    if (!vibe || !timeCommitment) return;
+    // Collect all genres from selected vibes
+    const allGenres = vibes.length > 0
+      ? [...new Set(vibes.flatMap(v => vibeToGenres[v]))]
+      : ['Action', 'Comedy', 'Drama', 'Sci-Fi', 'Thriller']; // Smart defaults
 
     const preferences: UserPreferences = {
       languages,
-      contentType: timeCommitment === 'quick' ? 'movies' : timeCommitment === 'series' ? 'series' : 'both',
+      contentType: timeCommitment || 'both',
       seriesType: 'both',
-      genres: vibeToGenres[vibe],
+      genres: allGenres,
       yearRange: era === 'modern'
         ? [2015, currentYear]
         : era === 'classic'
@@ -59,7 +62,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             <div className="text-center">
               <Sparkles className="h-16 w-16 text-yellow-400 mx-auto mb-4 animate-pulse" />
               <h2 className="text-3xl font-bold text-white mb-2">What's your vibe?</h2>
-              <p className="text-white/70">Pick what you're in the mood for</p>
+              <p className="text-white/70">Select all that apply</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -71,9 +74,15 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               ].map((option) => (
                 <button
                   key={option.id}
-                  onClick={() => setVibe(option.id as Vibe)}
+                  onClick={() => {
+                    setVibes(prev =>
+                      prev.includes(option.id as Vibe)
+                        ? prev.filter(v => v !== option.id)
+                        : [...prev, option.id as Vibe]
+                    );
+                  }}
                   className={`p-6 rounded-2xl border-2 transition-all transform hover:scale-105 ${
-                    vibe === option.id
+                    vibes.includes(option.id as Vibe)
                       ? 'bg-white/20 border-white shadow-lg shadow-white/20'
                       : 'bg-white/5 border-white/20 hover:bg-white/10'
                   }`}
@@ -243,8 +252,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               <button
                 onClick={() => setStep(step + 1)}
                 disabled={
-                  (step === 0 && !vibe) ||
-                  (step === 1 && !timeCommitment) ||
                   (step === 2 && languages.length === 0)
                 }
                 className="flex-1 px-6 py-3 rounded-xl bg-white text-gray-900 hover:bg-white/90 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
@@ -261,18 +268,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             )}
           </div>
         </div>
-
-        {/* Skip Option */}
-        {step === 0 && (
-          <div className="text-center mt-4">
-            <button
-              onClick={() => handleComplete()}
-              className="text-white/60 hover:text-white text-sm transition"
-            >
-              Skip and use smart defaults →
-            </button>
-          </div>
-        )}
       </div>
 
       <style>{`

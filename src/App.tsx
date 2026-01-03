@@ -35,10 +35,7 @@ function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
-  const [userProfile, setUserProfile] = useState<{ name: string; preferences: UserPreferences } | null>(() => {
-    const saved = localStorage.getItem('userProfile');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [userProfile, setUserProfile] = useState<{ name: string; preferences: UserPreferences } | null>(null);
   const [currentGradient, setCurrentGradient] = useState(0);
   const [currentView, setCurrentView] = useState<ViewType>('swipe');
   const [showSurpriseMe, setShowSurpriseMe] = useState(false);
@@ -318,6 +315,7 @@ function App() {
     const profile = { name, preferences };
     setUserProfile(profile);
     localStorage.setItem('userProfile', JSON.stringify(profile));
+    setCurrentView('swipe'); // Ensure we go to swipe view, not settings
 
     try {
       if (userId) {
