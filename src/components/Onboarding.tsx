@@ -27,6 +27,11 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const [era, setEra] = useState<'modern' | 'classic' | 'any'>('modern');
 
   const handleComplete = () => {
+    if (!name.trim()) {
+      alert('Please enter your name to continue');
+      return;
+    }
+
     // Collect all genres from selected vibes
     const allGenres = vibes.length > 0
       ? [...new Set(vibes.flatMap(v => vibeToGenres[v]))]
@@ -44,7 +49,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
         : [1900, currentYear]
     };
 
-    onComplete(name || 'Movie Lover', preferences);
+    onComplete(name.trim(), preferences);
   };
 
   const gradients = [
@@ -61,8 +66,24 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           <div className="space-y-8 animate-fadeIn">
             <div className="text-center">
               <Sparkles className="h-16 w-16 text-yellow-400 mx-auto mb-4 animate-pulse" />
-              <h2 className="text-3xl font-bold text-white mb-2">What's your vibe?</h2>
-              <p className="text-white/70">Select all that apply</p>
+              <h2 className="text-3xl font-bold text-white mb-2">Welcome! What's your name?</h2>
+              <p className="text-white/70">Let's personalize your experience</p>
+            </div>
+
+            <div className="space-y-6">
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter your name"
+                className="w-full px-4 py-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:outline-none focus:border-white/40 transition text-center text-lg"
+                autoFocus
+              />
+
+              <div>
+                <p className="text-white font-semibold mb-3 text-center">What's your vibe?</p>
+                <p className="text-white/60 text-sm text-center mb-4">Select all that apply</p>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

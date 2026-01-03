@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, PanInfo, useMotionValue, useTransform, useAnimation } from 'framer-motion';
-import { Heart, X, BookmarkPlus, Star, Clock, Globe, Users, Calendar } from 'lucide-react';
+import { Heart, X, BookmarkPlus, Star, Clock, Globe } from 'lucide-react';
 import type { Movie, MovieActionType } from '../types';
 import { LANGUAGE_NAMES } from '../lib/tmdb';
-import { getPosterUrl, getMovieDetails } from '../lib/tmdb';
+import { getPosterUrl } from '../lib/tmdb';
 
 interface MovieCardProps {
   movie: Movie;
@@ -12,11 +12,6 @@ interface MovieCardProps {
   stackIndex?: number;
 }
 
-interface MovieDetails {
-  cast: { name: string; character: string; profilePath: string | null }[];
-  crew: { name: string; job: string }[];
-  runtime: number;
-}
 export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: MovieCardProps) {
   const controls = useAnimation();
   const x = useMotionValue(0);
@@ -29,8 +24,6 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
   const [posterLoaded, setPosterLoaded] = useState(false);
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
-  const [movieDetails, setMovieDetails] = useState<MovieDetails | null>(null);
-  const [loadingDetails, setLoadingDetails] = useState(false);
   const detailsTimeoutRef = useRef<number>();
   const isDraggingRef = useRef(false);
   
@@ -60,32 +53,6 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
   const stackRotate = -2 * stackIndex;
   const stackOpacity = 1 - (stackIndex * 0.2);
 
-  // Fetch movie details when card becomes active
-  useEffect(() => {
-    if (active && !movieDetails && !loadingDetails) {
-      const fetchDetails = async () => {
-        setLoadingDetails(true);
-        try {
-          const details = await getMovieDetails(movie.id, movie.type);
-          if (details) {
-            setMovieDetails({
-              cast: details.cast,
-              crew: details.crew,
-              runtime: details.runtime
-            });
-          }
-        } catch (error) {
-          console.error('Error fetching movie details:', error);
-        } finally {
-          setLoadingDetails(false);
-        }
-      };
-      
-      // Delay fetching to avoid too many API calls
-      const timeout = setTimeout(fetchDetails, 1000);
-      return () => clearTimeout(timeout);
-    }
-  }, [active, movie.id, movie.type, movieDetails, loadingDetails]);
   useEffect(() => {
     if (!active || showTutorial || isDraggingRef.current) return;
 
@@ -357,50 +324,6 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
                 ))}
               </div>
 
-              {/* Enhanced Details */}
-              {movieDetails && (
-                <div className="space-y-2 pt-2">
-                  {/* Cast */}
-                  {movieDetails.cast.length > 0 && (
-                    <div>
-                      <div className="flex items-center gap-1 mb-1">
-                        <Users className="h-3 w-3 text-white/60" />
-                        <span className="text-xs font-medium text-white/80">Cast</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {movieDetails.cast.slice(0, 4).map(actor => (
-                          <span
-                            key={actor.name}
-                            className="text-xs bg-white/20 text-white/80 px-2 py-0.5 rounded-full"
-                          >
-                            {actor.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Crew */}
-                  {movieDetails.crew.length > 0 && (
-                    <div>
-                      <div className="flex items-center gap-1 mb-1">
-                        <Calendar className="h-3 w-3 text-white/60" />
-                        <span className="text-xs font-medium text-white/80">Crew</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {movieDetails.crew.slice(0, 2).map(person => (
-                          <span
-                            key={`${person.name}-${person.job}`}
-                            className="text-xs bg-white/20 text-white/80 px-2 py-0.5 rounded-full"
-                          >
-                            {person.name} ({person.job})
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
               <div className="flex justify-between pt-4">
                 <button
                   onClick={(e) => {

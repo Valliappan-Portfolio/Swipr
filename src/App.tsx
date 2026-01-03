@@ -525,13 +525,6 @@ function App() {
             <span className="text-sm">Watchlist</span>
           </button>
           <button
-            onClick={() => setShowUserStats(true)}
-            className="flex items-center gap-1 px-3 py-2 rounded-full transition text-white/60 hover:text-white hover:bg-white/10"
-          >
-            <BarChart3 className="h-5 w-5" />
-            <span className="text-sm">Stats</span>
-          </button>
-          <button
             onClick={() => setShowSurpriseMe(true)}
             className={`flex items-center gap-1 px-3 py-2 rounded-full transition ${
               showSurpriseMe
