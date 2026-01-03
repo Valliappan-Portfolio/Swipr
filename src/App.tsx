@@ -52,6 +52,7 @@ function App() {
   const [undoInProgress, setUndoInProgress] = useState(false);
   const [lastUndoMovie, setLastUndoMovie] = useState<Movie | null>(null);
   const [topRatedMovies, setTopRatedMovies] = useState<Movie[]>([]);
+  const [isLoadingUser, setIsLoadingUser] = useState(false);
 
   useEffect(() => {
     const savedSeenMovies = localStorage.getItem('seenMovies');
@@ -160,12 +161,24 @@ function App() {
         .filter(item => item && item.id && !seenMovies.has(item.id))
         .filter(item => item.posterPath);
 
-      if (newContent.length === 0 && page < 10) { // Increased from 5 to 10 pages
+      // Also filter out any movies already in the current movies array
+      const existingIds = new Set(movies.map(m => m.id));
+      const uniqueContent = newContent.filter(item => !existingIds.has(item.id));
+
+      console.log('📝 Content filtering:', {
+        total: allContent.length,
+        afterSeenFilter: newContent.length,
+        afterDuplicateFilter: uniqueContent.length,
+        seenMoviesCount: seenMovies.size,
+        currentMoviesCount: movies.length
+      });
+
+      if (uniqueContent.length === 0 && page < 10) { // Increased from 5 to 10 pages
         return await fetchContent(page + 1, false); // Disable personalization for retry
       }
 
       // Shuffle content to add variety
-      const shuffledContent = newContent.sort(() => Math.random() - 0.5);
+      const shuffledContent = uniqueContent.sort(() => Math.random() - 0.5);
 
       setMovies(prev => [...prev, ...shuffledContent]);
       
@@ -380,6 +393,7 @@ function App() {
     return (
       <Auth
         onAuthSuccess={async (user) => {
+          setIsLoadingUser(true);
           setUserId(user.id);
           setUsername(user.username);
           storeUserId(user.id);
@@ -395,8 +409,20 @@ function App() {
             storePreferenceId(existingData.preferenceId);
             console.log('✅ Restored user data:', { name: existingData.name, preferenceId: existingData.preferenceId });
           }
+          setIsLoadingUser(false);
         }}
       />
+    );
+  }
+
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-cyan-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading your profile...</p>
+        </div>
+      </div>
     );
   }
 
