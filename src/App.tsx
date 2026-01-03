@@ -299,16 +299,16 @@ function App() {
     }
   };
 
-  const handleUndo = () => {
+  const handleUndo = async () => {
     if (undoInProgress) return;
-    
+
     setUndoInProgress(true);
     const undoMovie = smartRecommendationEngine.undoLastSwipe();
-    
+
     if (undoMovie && currentIndex > 0) {
       // Move back one movie
       setCurrentIndex(prev => prev - 1);
-      
+
       // Remove from seen movies
       setSeenMovies(prev => {
         const next = new Set(prev);
@@ -322,9 +322,9 @@ function App() {
         const watchlist = await getSupabaseWatchlist(userId);
         setUnwatchedMovies(watchlist);
       }
-      
+
       setLastUndoMovie(undoMovie);
-      
+
       // Reset undo state after animation
       setTimeout(() => {
         setUndoInProgress(false);
