@@ -13,7 +13,7 @@ import { ConnectionTest } from './components/ConnectionTest';
 import { getMovies, getTVSeries, getTopRatedMovies } from './lib/tmdb';
 import { intelligentRecommendationEngine } from './lib/intelligentRecommendations';
 import { smartRecommendationEngine } from './lib/smartRecommendations';
-import { saveUserPreferences, saveMovieAction, getStoredPreferenceId, storePreferenceId, getStoredUserId, storeUserId, getStoredUsername, storeUsername, getUserPreferences, addToWatchlist as addToSupabaseWatchlist, getWatchlist as getSupabaseWatchlist, removeFromWatchlist } from './lib/supabase';
+import { saveUserPreferences, saveMovieAction, getStoredPreferenceId, storePreferenceId, getStoredUserId, storeUserId, getStoredUsername, storeUsername, getStoredEmail, storeEmail, getUserPreferences, addToWatchlist as addToSupabaseWatchlist, getWatchlist as getSupabaseWatchlist, removeFromWatchlist } from './lib/supabase';
 import type { Movie, MovieActionType, UserPreferences, ViewType } from './types';
 
 const gradients = [
@@ -46,6 +46,7 @@ function App() {
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const [useIntelligentRecommendations, setUseIntelligentRecommendations] = useState(true);
   const [showConnectionTest, setShowConnectionTest] = useState(false);
   const [showUserStats, setShowUserStats] = useState(false);
@@ -73,6 +74,11 @@ function App() {
     const storedUsername = getStoredUsername();
     if (storedUsername) {
       setUsername(storedUsername);
+    }
+
+    const storedEmail = getStoredEmail();
+    if (storedEmail) {
+      setEmail(storedEmail);
     }
 
     // Watchlist will be loaded from Supabase after authentication
@@ -399,15 +405,17 @@ function App() {
     return <HomePage onStart={handleStartApp} />;
   }
 
-  if (!userId || !username) {
+  if (!userId || !username || !email) {
     return (
       <Auth
         onAuthSuccess={async (user) => {
           setIsLoadingUser(true);
           setUserId(user.id);
           setUsername(user.username);
+          setEmail(user.email);
           storeUserId(user.id);
           storeUsername(user.username);
+          storeEmail(user.email);
 
           // Load existing preferences for returning users
           const existingData = await getUserPreferences(user.id);

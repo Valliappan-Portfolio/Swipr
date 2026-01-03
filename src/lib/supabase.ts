@@ -41,6 +41,99 @@ export async function testConnection() {
   }
 }
 
+// New email-based authentication functions
+export async function signUpUser(email: string, username: string) {
+  try {
+    // Check if email already exists
+    const { data: existingUser } = await supabase
+      .from('anonymous_users')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (existingUser) {
+      return {
+        user: null,
+        error: new Error('Email already registered. Please login instead.'),
+        exists: true
+      };
+    }
+
+    // Check if username already exists
+    const { data: existingUsername } = await supabase
+      .from('anonymous_users')
+      .select('*')
+      .eq('username', username)
+      .maybeSingle();
+
+    if (existingUsername) {
+      return {
+        user: null,
+        error: new Error('Username already taken. Please choose another.'),
+        exists: false
+      };
+    }
+
+    // Create new user
+    const { data: newUser, error: insertError } = await supabase
+      .from('anonymous_users')
+      .insert([{ email, username }])
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+
+    console.log('✅ New user created:', { email, username });
+
+    return {
+      user: newUser,
+      error: null,
+      exists: false
+    };
+  } catch (error) {
+    console.error('Error signing up user:', error);
+    return { user: null, error, exists: false };
+  }
+}
+
+export async function loginUser(email: string) {
+  try {
+    const { data: user, error: fetchError } = await supabase
+      .from('anonymous_users')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+
+    if (!user) {
+      return {
+        user: null,
+        error: new Error('Email not found. Please sign up first.'),
+        notFound: true
+      };
+    }
+
+    // Update last_seen
+    await supabase
+      .from('anonymous_users')
+      .update({ last_seen: new Date().toISOString() })
+      .eq('id', user.id);
+
+    console.log('✅ User logged in:', { email, username: user.username });
+
+    return {
+      user,
+      error: null,
+      notFound: false
+    };
+  } catch (error) {
+    console.error('Error logging in user:', error);
+    return { user: null, error, notFound: false };
+  }
+}
+
+// Legacy function - kept for backwards compatibility
 export async function getOrCreateUser(username: string) {
   try {
     const { data: existingUser, error: fetchError } = await supabase
@@ -204,6 +297,14 @@ export function getStoredUsername(): string | null {
 
 export function storeUsername(username: string) {
   localStorage.setItem('current_username', username);
+}
+
+export function getStoredEmail(): string | null {
+  return localStorage.getItem('current_email');
+}
+
+export function storeEmail(email: string) {
+  localStorage.setItem('current_email', email);
 }
 
 export function getStoredPreferenceId(): string | null {
