@@ -305,12 +305,6 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
                     <span>{LANGUAGE_NAMES[movie.language]}</span>
                   </div>
                 )}
-                {movieDetails?.runtime && (
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    <span>{movieDetails.runtime}min</span>
-                  </div>
-                )}
               </div>
 
               <div className="flex flex-wrap gap-2">
