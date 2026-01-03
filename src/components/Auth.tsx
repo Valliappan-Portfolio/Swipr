@@ -97,6 +97,40 @@ export function Auth({ onAuthSuccess }: AuthProps) {
           </p>
         </div>
 
+        {/* Login/Signup Toggle - More Prominent */}
+        <div className="flex gap-2 mb-6 bg-white/10 p-1 rounded-lg">
+          <button
+            type="button"
+            onClick={() => {
+              setIsLogin(true);
+              setError(null);
+              setSuccess(null);
+            }}
+            className={`flex-1 py-2 px-4 rounded-md font-semibold transition ${
+              isLogin
+                ? 'bg-white text-cyan-900'
+                : 'text-white/70 hover:text-white'
+            }`}
+          >
+            Login
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsLogin(false);
+              setError(null);
+              setSuccess(null);
+            }}
+            className={`flex-1 py-2 px-4 rounded-md font-semibold transition ${
+              !isLogin
+                ? 'bg-white text-cyan-900'
+                : 'text-white/70 hover:text-white'
+            }`}
+          >
+            Sign Up
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-white/80 mb-2">
@@ -153,23 +187,6 @@ export function Auth({ onAuthSuccess }: AuthProps) {
               isLogin ? 'Login' : 'Sign Up'
             )}
           </button>
-
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setError(null);
-                setSuccess(null);
-              }}
-              className="text-white/70 text-sm hover:text-white transition"
-            >
-              {isLogin ? "Don't have an account? " : 'Already have an account? '}
-              <span className="font-semibold underline">
-                {isLogin ? 'Sign Up' : 'Login'}
-              </span>
-            </button>
-          </div>
 
           <div className="text-center">
             <p className="text-white/60 text-xs">

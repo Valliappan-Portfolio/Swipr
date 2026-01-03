@@ -465,7 +465,7 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
         {showTutorial && (
           <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-30">
             <div className="text-white text-center p-6">
-              <h3 className="text-xl font-bold mb-4">How to use What2WatchNxt</h3>
+              <h3 className="text-xl font-bold mb-4">How to use Swipr</h3>
               <div className="space-y-4">
                 <div className="flex items-center gap-2 justify-center">
                   <Heart className="h-6 w-6 text-green-400" />

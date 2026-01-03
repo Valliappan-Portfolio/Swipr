@@ -9,7 +9,8 @@
       "Bash(netlify deploy:*)",
       "Bash(netlify sites:create:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }

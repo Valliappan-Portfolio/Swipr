@@ -69,11 +69,11 @@ export function HomePage({ onStart }: HomePageProps) {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-4xl sm:text-6xl font-bold text-white mb-6">
-              What2WatchNxt
-              <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400">
-                Your Perfect Movie
+                Swipr
               </span>
+              <br />
+              Your Perfect Movie
               <br />
               Is a Swipe Away
             </h1>

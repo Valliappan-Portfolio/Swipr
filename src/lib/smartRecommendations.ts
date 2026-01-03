@@ -38,7 +38,7 @@ class SmartRecommendationEngine {
   private static instance: SmartRecommendationEngine;
   private userSession: UserSession;
   private movieQueue: Movie[] = [];
-  private readonly STORAGE_KEY = 'what2watchnxt_session';
+  private readonly STORAGE_KEY = 'swipr_session';
   private readonly QUEUE_SIZE = 20;
 
   constructor() {

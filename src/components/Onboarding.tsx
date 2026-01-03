@@ -120,7 +120,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     <div className="space-y-6">
       <div className="text-center mb-8">
         <Clapperboard className="h-12 w-12 text-white mx-auto mb-4 animate-pulse" />
-        <h1 className="text-3xl font-bold text-white mb-2">Welcome to What2WatchNxt</h1>
+        <h1 className="text-3xl font-bold text-white mb-2">Welcome to Swipr</h1>
         <p className="text-white/80 text-lg">
           Your Personal Movie Adventure Begins Here
         </p>
