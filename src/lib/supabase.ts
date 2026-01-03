@@ -213,3 +213,83 @@ export function getStoredPreferenceId(): string | null {
 export function storePreferenceId(id: string) {
   localStorage.setItem('current_preference_id', id);
 }
+
+// Watchlist functions
+export async function addToWatchlist(userId: string, preferenceId: string | null, movie: any) {
+  try {
+    const { error } = await supabase
+      .from('anonymous_watchlist')
+      .insert([{
+        user_id: userId,
+        preference_id: preferenceId,
+        movie_id: movie.id,
+        movie_title: movie.title,
+        movie_overview: movie.overview,
+        movie_poster_path: movie.posterPath,
+        movie_release_date: movie.releaseDate,
+        movie_vote_average: movie.voteAverage,
+        movie_genres: movie.genres,
+        movie_type: movie.type,
+        movie_language: movie.language
+      }]);
+
+    if (error) {
+      // Ignore duplicate errors (user already has this in watchlist)
+      if (error.code === '23505') {
+        console.log('Movie already in watchlist');
+        return;
+      }
+      throw error;
+    }
+
+    console.log('✅ Added to watchlist:', movie.title);
+  } catch (error) {
+    console.error('Error adding to watchlist:', error);
+    throw error;
+  }
+}
+
+export async function getWatchlist(userId: string) {
+  try {
+    const { data, error } = await supabase
+      .from('anonymous_watchlist')
+      .select('*')
+      .eq('user_id', userId)
+      .order('added_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Convert to Movie format
+    return (data || []).map(item => ({
+      id: item.movie_id,
+      title: item.movie_title,
+      overview: item.movie_overview || '',
+      posterPath: item.movie_poster_path || '',
+      releaseDate: item.movie_release_date || '',
+      voteAverage: item.movie_vote_average || 0,
+      genres: item.movie_genres || [],
+      type: item.movie_type as 'movie' | 'series',
+      language: item.movie_language
+    }));
+  } catch (error) {
+    console.error('Error loading watchlist:', error);
+    return [];
+  }
+}
+
+export async function removeFromWatchlist(userId: string, movieId: number) {
+  try {
+    const { error } = await supabase
+      .from('anonymous_watchlist')
+      .delete()
+      .eq('user_id', userId)
+      .eq('movie_id', movieId);
+
+    if (error) throw error;
+
+    console.log('✅ Removed from watchlist:', movieId);
+  } catch (error) {
+    console.error('Error removing from watchlist:', error);
+    throw error;
+  }
+}

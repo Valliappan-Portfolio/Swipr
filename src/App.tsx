@@ -13,7 +13,7 @@ import { ConnectionTest } from './components/ConnectionTest';
 import { getMovies, getTVSeries, getTopRatedMovies } from './lib/tmdb';
 import { intelligentRecommendationEngine } from './lib/intelligentRecommendations';
 import { smartRecommendationEngine } from './lib/smartRecommendations';
-import { saveUserPreferences, saveMovieAction, getStoredPreferenceId, storePreferenceId, getStoredUserId, storeUserId, getStoredUsername, storeUsername, getUserPreferences } from './lib/supabase';
+import { saveUserPreferences, saveMovieAction, getStoredPreferenceId, storePreferenceId, getStoredUserId, storeUserId, getStoredUsername, storeUsername, getUserPreferences, addToWatchlist as addToSupabaseWatchlist, getWatchlist as getSupabaseWatchlist, removeFromWatchlist } from './lib/supabase';
 import type { Movie, MovieActionType, UserPreferences, ViewType } from './types';
 
 const gradients = [
@@ -75,9 +75,7 @@ function App() {
       setUsername(storedUsername);
     }
 
-    // Load watchlist from smart recommendation engine
-    const watchlist = smartRecommendationEngine.getWatchlist();
-    setUnwatchedMovies(watchlist);
+    // Watchlist will be loaded from Supabase after authentication
   }, []);
 
   const fetchContent = async (page: number, usePersonalized: boolean = true) => {
@@ -276,8 +274,17 @@ function App() {
     }
 
     if (action === 'unwatched') {
-      // Smart engine already handles watchlist
-      setUnwatchedMovies(smartRecommendationEngine.getWatchlist());
+      // Add to Supabase watchlist
+      if (userId) {
+        try {
+          await addToSupabaseWatchlist(userId, preferenceId, currentMovie);
+          // Reload watchlist from Supabase
+          const watchlist = await getSupabaseWatchlist(userId);
+          setUnwatchedMovies(watchlist);
+        } catch (error) {
+          console.error('Error adding to watchlist:', error);
+        }
+      }
     }
 
     if (!movie && currentIndex >= movies.length - 3 && !isFetching) {
@@ -310,8 +317,11 @@ function App() {
         return next;
       });
 
-      // Update watchlist
-      setUnwatchedMovies(smartRecommendationEngine.getWatchlist());
+      // Update watchlist from Supabase
+      if (userId) {
+        const watchlist = await getSupabaseWatchlist(userId);
+        setUnwatchedMovies(watchlist);
+      }
       
       setLastUndoMovie(undoMovie);
       
@@ -409,6 +419,12 @@ function App() {
             storePreferenceId(existingData.preferenceId);
             console.log('✅ Restored user data:', { name: existingData.name, preferenceId: existingData.preferenceId });
           }
+
+          // Load watchlist from Supabase
+          const watchlist = await getSupabaseWatchlist(user.id);
+          setUnwatchedMovies(watchlist);
+          console.log('✅ Loaded watchlist:', watchlist.length, 'items');
+
           setIsLoadingUser(false);
         }}
       />
@@ -511,8 +527,18 @@ function App() {
             {currentView === 'list' && (
               <WatchlistView
                 movies={unwatchedMovies}
-                onUpdate={() => {
-                  setUnwatchedMovies(smartRecommendationEngine.getWatchlist());
+                onUpdate={async () => {
+                  if (userId) {
+                    const watchlist = await getSupabaseWatchlist(userId);
+                    setUnwatchedMovies(watchlist);
+                  }
+                }}
+                onRemove={async (movieId: number) => {
+                  if (userId) {
+                    await removeFromWatchlist(userId, movieId);
+                    const watchlist = await getSupabaseWatchlist(userId);
+                    setUnwatchedMovies(watchlist);
+                  }
                 }}
               />
             )}

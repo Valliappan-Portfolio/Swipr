@@ -7,6 +7,7 @@ import { getWatchProviders, getMovieDetails } from '../lib/tmdb';
 interface WatchlistViewProps {
   movies: Movie[];
   onUpdate: () => void;
+  onRemove?: (movieId: number) => Promise<void>;
 }
 
 interface MovieDetails {
@@ -80,7 +81,7 @@ const PROVIDER_URLS: { [key: number]: { url: string; regions?: { [key: string]: 
   }
 };
 
-export function WatchlistView({ movies, onUpdate }: WatchlistViewProps) {
+export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps) {
   const [streamingInfo, setStreamingInfo] = useState<{ [key: number]: StreamingInfo }>({});
   const [loadingProviders, setLoadingProviders] = useState<{ [key: number]: boolean }>({});
   const [movieDetails, setMovieDetails] = useState<{ [key: number]: MovieDetails }>({});
@@ -89,10 +90,15 @@ export function WatchlistView({ movies, onUpdate }: WatchlistViewProps) {
 
   const handleAction = async (movieId: number, action: 'like' | 'pass') => {
     try {
-      // Remove from watchlist
-      smartRecommendationEngine.removeFromWatchlist(movieId);
-      
-      // If user liked it, record the action
+      // If onRemove is provided (Supabase mode), use it
+      if (onRemove) {
+        await onRemove(movieId);
+      } else {
+        // Fallback to localStorage mode
+        smartRecommendationEngine.removeFromWatchlist(movieId);
+      }
+
+      // If user liked it, record the action in smart engine
       if (action === 'like') {
         const movie = movies.find(m => m.id === movieId);
         if (movie) {
