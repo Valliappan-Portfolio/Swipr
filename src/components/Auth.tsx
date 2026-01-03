@@ -11,6 +11,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isLogin, setIsLogin] = useState(true);
 
   React.useEffect(() => {
     const checkConnection = async () => {
@@ -29,7 +30,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
     setSuccess(null);
 
     try {
-      const trimmedUsername = username.trim().toLowerCase();
+      const trimmedUsername = username.trim();
 
       if (!trimmedUsername) {
         throw new Error('Please enter a username');
@@ -39,8 +40,8 @@ export function Auth({ onAuthSuccess }: AuthProps) {
         throw new Error('Username must be at least 3 characters long');
       }
 
-      if (!/^[a-z0-9_]+$/.test(trimmedUsername)) {
-        throw new Error('Username can only contain lowercase letters, numbers, and underscores');
+      if (!/^[a-zA-Z0-9_]+$/.test(trimmedUsername)) {
+        throw new Error('Username can only contain letters, numbers, and underscores');
       }
 
       const result = await getOrCreateUser(trimmedUsername);
@@ -51,7 +52,18 @@ export function Auth({ onAuthSuccess }: AuthProps) {
 
       if (result.user) {
         const isNewUser = result.isNewUser;
-        setSuccess(isNewUser ? 'Welcome! Getting started...' : 'Welcome back!');
+
+        // Check if user is trying to login but username doesn't exist
+        if (isLogin && isNewUser) {
+          throw new Error('Username not found. Please sign up first.');
+        }
+
+        // Check if user is trying to signup but username already exists
+        if (!isLogin && !isNewUser) {
+          throw new Error('Username already exists. Please login instead.');
+        }
+
+        setSuccess(isNewUser ? 'Account created! Getting started...' : 'Welcome back!');
         setTimeout(() => onAuthSuccess(result.user), 800);
       }
     } catch (error: any) {
@@ -75,13 +87,13 @@ export function Auth({ onAuthSuccess }: AuthProps) {
             <User className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-white mb-2">
-            Welcome to What2WatchNxt
+            {isLogin ? 'Welcome Back to Swipr!' : 'Join Swipr'}
           </h1>
           <p className="text-white/70">
-            Choose a username to get started
+            {isLogin ? 'Enter your username to continue' : 'Choose a username to get started'}
           </p>
           <p className="text-white/50 text-sm mt-2">
-            No password needed - just pick a unique username
+            No password needed - just your unique username
           </p>
         </div>
 
@@ -97,10 +109,10 @@ export function Auth({ onAuthSuccess }: AuthProps) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:outline-none focus:border-white/40 transition"
-                placeholder="Choose a username"
+                placeholder={isLogin ? "Enter your username" : "Choose a username"}
                 required
                 minLength={3}
-                pattern="[a-z0-9_]+"
+                pattern="[a-zA-Z0-9_]+"
                 autoComplete="off"
               />
             </div>
@@ -135,12 +147,29 @@ export function Auth({ onAuthSuccess }: AuthProps) {
             {loading ? (
               <div className="flex items-center justify-center gap-2">
                 <div className="w-5 h-5 border-2 border-cyan-900/20 border-t-cyan-900 rounded-full animate-spin"></div>
-                <span>Connecting...</span>
+                <span>{isLogin ? 'Logging in...' : 'Creating account...'}</span>
               </div>
             ) : (
-              'Continue'
+              isLogin ? 'Login' : 'Sign Up'
             )}
           </button>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setError(null);
+                setSuccess(null);
+              }}
+              className="text-white/70 text-sm hover:text-white transition"
+            >
+              {isLogin ? "Don't have an account? " : 'Already have an account? '}
+              <span className="font-semibold underline">
+                {isLogin ? 'Sign Up' : 'Login'}
+              </span>
+            </button>
+          </div>
 
           <div className="text-center">
             <p className="text-white/60 text-xs">

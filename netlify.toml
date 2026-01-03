@@ -12,7 +12,7 @@
 
 # Domain configuration
 [context.production.environment]
-  SITE_URL = "https://what2watchnxt.netlify.app"
+  SITE_URL = "https://swipr.netlify.app"
 
 # Enable HSTS
 [[headers]]
