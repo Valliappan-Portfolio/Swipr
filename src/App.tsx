@@ -10,10 +10,10 @@ import { SurpriseMe } from './components/SurpriseMe';
 import { UserStats } from './components/UserStats';
 import { UndoButton } from './components/UndoButton';
 import { ConnectionTest } from './components/ConnectionTest';
-import { getMovies, getTVSeries } from './lib/tmdb';
+import { getMovies, getTVSeries, getTopRatedMovies } from './lib/tmdb';
 import { intelligentRecommendationEngine } from './lib/intelligentRecommendations';
 import { smartRecommendationEngine } from './lib/smartRecommendations';
-import { saveUserPreferences, saveMovieAction, getStoredPreferenceId, storePreferenceId, getStoredUserId, storeUserId, getStoredUsername, storeUsername } from './lib/supabase';
+import { saveUserPreferences, saveMovieAction, getStoredPreferenceId, storePreferenceId, getStoredUserId, storeUserId, getStoredUsername, storeUsername, getUserPreferences } from './lib/supabase';
 import type { Movie, MovieActionType, UserPreferences, ViewType } from './types';
 
 const gradients = [
@@ -54,6 +54,7 @@ function App() {
   const [showUserStats, setShowUserStats] = useState(false);
   const [undoInProgress, setUndoInProgress] = useState(false);
   const [lastUndoMovie, setLastUndoMovie] = useState<Movie | null>(null);
+  const [topRatedMovies, setTopRatedMovies] = useState<Movie[]>([]);
 
   useEffect(() => {
     const savedSeenMovies = localStorage.getItem('seenMovies');
@@ -103,8 +104,8 @@ function App() {
           );
           
           if (personalizedMovies.length > 0) {
-            // Apply smart recommendation scoring
-            allContent = smartRecommendationEngine.getPersonalizedRecommendations(personalizedMovies);
+            // Apply smart recommendation scoring with cold start
+            allContent = smartRecommendationEngine.getPersonalizedRecommendations(personalizedMovies, topRatedMovies);
             console.log(`🎯 Intelligent recommendations loaded: ${personalizedMovies.length} movies for page ${page}`);
             console.log(`📊 User preferences: ${preferences.genres.join(', ')} | Languages: ${preferences.languages.join(', ')}`);
             console.log(`🎬 Sample movies:`, personalizedMovies.slice(0, 3).map(m => ({ title: m.title, genres: m.genres })));
@@ -143,10 +144,10 @@ function App() {
           }
         }
 
-        // Apply smart scoring to regular content too
+        // Apply smart scoring to regular content too with cold start
         if (allContent.length > 0) {
           const originalLength = allContent.length;
-          allContent = smartRecommendationEngine.getPersonalizedRecommendations(allContent);
+          allContent = smartRecommendationEngine.getPersonalizedRecommendations(allContent, topRatedMovies);
           console.log('🎯 Smart scoring applied:', {
             originalMovies: originalLength,
             scoredMovies: allContent.length,
@@ -186,11 +187,20 @@ function App() {
 
   useEffect(() => {
     if (!userProfile?.preferences) return;
-    
+
     setIsLoading(true);
     setMovies([]);
     setCurrentIndex(0);
-    
+
+    // Fetch top-rated movies for cold start
+    const loadTopRated = async () => {
+      const topRated = await getTopRatedMovies(userProfile.preferences.languages);
+      setTopRatedMovies(topRated);
+      console.log('🌟 Top-rated movies loaded for cold start:', topRated.length);
+    };
+
+    loadTopRated();
+
     // Load initial content and apply smart scoring
     fetchContent(currentPage).then(() => {
       console.log('🧠 Smart recommendation engine initialized');
@@ -371,11 +381,22 @@ function App() {
   if (!userId || !username) {
     return (
       <Auth
-        onAuthSuccess={(user) => {
+        onAuthSuccess={async (user) => {
           setUserId(user.id);
           setUsername(user.username);
           storeUserId(user.id);
           storeUsername(user.username);
+
+          // Load existing preferences for returning users
+          const existingData = await getUserPreferences(user.id);
+          if (existingData) {
+            const profile = { name: existingData.name, preferences: existingData.preferences };
+            setUserProfile(profile);
+            localStorage.setItem('userProfile', JSON.stringify(profile));
+            setPreferenceId(existingData.preferenceId);
+            storePreferenceId(existingData.preferenceId);
+            console.log('✅ Restored user data:', { name: existingData.name, preferenceId: existingData.preferenceId });
+          }
         }}
       />
     );
@@ -409,10 +430,10 @@ function App() {
             </span>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center">
             <button
               onClick={() => setCurrentView('settings')}
-              className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition"
+              className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition flex items-center justify-center"
               title="Settings"
             >
               <SettingsIcon className="h-5 w-5 text-white" />

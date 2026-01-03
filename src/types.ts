@@ -1,4 +1,4 @@
-export type MovieLanguage = 'en' | 'hi' | 'ta' | 'te' | 'ml';
+export type MovieLanguage = 'en' | 'ta' | 'de' | 'es' | 'hi' | 'te' | 'ml' | 'kn';
 
 export interface Movie {
   id: number;

@@ -21,8 +21,10 @@ if (!TMDB_API_KEY) {
 
 export const LANGUAGE_NAMES: { [key: string]: string } = {
   en: 'English',
-  hi: 'Hindi',
   ta: 'Tamil',
+  de: 'German',
+  es: 'Spanish',
+  hi: 'Hindi',
   te: 'Telugu',
   ml: 'Malayalam'
 };
@@ -121,6 +123,70 @@ export async function getMovies(
   } catch (error) {
     console.error('[TMDB] Error fetching movies:', error);
     return { results: [], total_pages: 0 };
+  }
+}
+
+// Function to get top-rated movies for cold start (rating >= 8.5)
+export async function getTopRatedMovies(languages: string[] = ['en']) {
+  try {
+    const moviePromises = languages.map(async (language) => {
+      const url = new URL(`${TMDB_BASE_URL}/discover/movie`);
+      url.searchParams.append('api_key', TMDB_API_KEY);
+      url.searchParams.append('language', 'en-US');
+      url.searchParams.append('sort_by', 'vote_average.desc');
+      url.searchParams.append('include_adult', 'false');
+      url.searchParams.append('vote_count.gte', '1000'); // Ensure popular movies with many votes
+      url.searchParams.append('vote_average.gte', '8.5'); // Only highly rated
+      url.searchParams.append('with_original_language', language);
+      url.searchParams.append('page', '1');
+
+      const response = await fetch(url.toString());
+      const data = await response.json();
+
+      return (data.results || []).map((movie: any) => ({
+        ...movie,
+        language
+      }));
+    });
+
+    const allMoviesArrays = await Promise.all(moviePromises);
+    const allMovies = allMoviesArrays.flat().sort((a, b) => {
+      // Sort by rating first
+      const ratingDiff = b.vote_average - a.vote_average;
+      if (Math.abs(ratingDiff) > 0.1) return ratingDiff;
+      // If rating is similar, sort by vote count
+      return b.vote_count - a.vote_count;
+    });
+
+    const movies = allMovies
+      .filter(movie => {
+        const hasValidPoster = !!movie.poster_path;
+        const hasValidTitle = !!movie.title;
+        return hasValidPoster && hasValidTitle;
+      })
+      .map(movie => ({
+        id: movie.id,
+        title: movie.title,
+        overview: movie.overview || '',
+        posterPath: movie.poster_path,
+        releaseDate: movie.release_date || '',
+        voteAverage: movie.vote_average || 0,
+        genres: (movie.genre_ids || [])
+          .map(id => GENRE_NAMES[id])
+          .filter(Boolean),
+        type: 'movie' as const,
+        language: movie.language
+      }));
+
+    console.log('🌟 Top-rated movies fetched:', {
+      count: movies.length,
+      topRatings: movies.slice(0, 5).map(m => ({ title: m.title, rating: m.voteAverage }))
+    });
+
+    return movies;
+  } catch (error) {
+    console.error('[TMDB] Error fetching top-rated movies:', error);
+    return [];
   }
 }
 

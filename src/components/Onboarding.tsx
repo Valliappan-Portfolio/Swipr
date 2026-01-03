@@ -137,10 +137,9 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             <div className="grid grid-cols-2 gap-3">
               {[
                 { id: 'en', flag: '🇺🇸', name: 'English' },
-                { id: 'hi', flag: '🇮🇳', name: 'Hindi' },
                 { id: 'ta', flag: '🇮🇳', name: 'Tamil' },
-                { id: 'te', flag: '🇮🇳', name: 'Telugu' },
-                { id: 'ml', flag: '🇮🇳', name: 'Malayalam' }
+                { id: 'de', flag: '🇩🇪', name: 'German' },
+                { id: 'es', flag: '🇪🇸', name: 'Spanish' }
               ].map((lang) => (
                 <button
                   key={lang.id}

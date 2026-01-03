@@ -368,14 +368,39 @@ class SmartRecommendationEngine {
     console.log('🗑️ All user data cleared');
   }
 
-  // Get personalized movie recommendations
-  getPersonalizedRecommendations(movies: Movie[]): Movie[] {
-    if (this.userSession.sessionStats.totalSwipes < 5) {
-      // For new users, return a diverse mix
-      return this.getDiverseSelection(movies);
+  // Get personalized movie recommendations with cold start
+  getPersonalizedRecommendations(movies: Movie[], coldStartMovies?: Movie[]): Movie[] {
+    // Cold start: First 5 swipes show top-rated movies
+    if (this.userSession.sessionStats.totalSwipes < 5 && coldStartMovies && coldStartMovies.length > 0) {
+      console.log('❄️ Cold start mode: Showing top-rated movies', {
+        swipeCount: this.userSession.sessionStats.totalSwipes,
+        topRatedCount: coldStartMovies.length
+      });
+      // Return top-rated movies first
+      return coldStartMovies.slice(0, 10 - this.userSession.sessionStats.totalSwipes);
     }
 
-    // For experienced users, use smart scoring
+    // Swipes 5-10: Blended approach (50% top-rated, 50% diverse)
+    if (this.userSession.sessionStats.totalSwipes < 10) {
+      console.log('🔄 Blended mode: Mixing top-rated with diverse content', {
+        swipeCount: this.userSession.sessionStats.totalSwipes
+      });
+      const diverse = this.getDiverseSelection(movies).slice(0, 10);
+      const topRated = (coldStartMovies || []).slice(0, 5);
+      // Interleave top-rated and diverse
+      const blended: Movie[] = [];
+      for (let i = 0; i < Math.max(diverse.length, topRated.length); i++) {
+        if (topRated[i]) blended.push(topRated[i]);
+        if (diverse[i]) blended.push(diverse[i]);
+      }
+      return blended;
+    }
+
+    // For experienced users (10+ swipes), use smart scoring
+    console.log('🎯 Personalized mode: Using learned preferences', {
+      swipeCount: this.userSession.sessionStats.totalSwipes,
+      likedGenres: this.userSession.preferences.likedGenres
+    });
     return this.sortMoviesByPreference(movies);
   }
 

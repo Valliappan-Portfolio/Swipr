@@ -83,6 +83,37 @@ export async function getOrCreateUser(username: string) {
   }
 }
 
+export async function getUserPreferences(userId: string) {
+  try {
+    const { data, error } = await supabase
+      .from('anonymous_preferences')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (data) {
+      return {
+        name: data.name,
+        preferences: {
+          languages: data.languages || ['en'],
+          contentType: data.content_type || 'both',
+          seriesType: data.series_type || 'both',
+          genres: data.genres || [],
+          yearRange: data.year_range || [1900, new Date().getFullYear()]
+        },
+        preferenceId: data.id
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error loading preferences:', error);
+    return null;
+  }
+}
+
 export async function saveUserPreferences(userId: string, name: string, preferences: any) {
   try {
     const { data: existingPrefs } = await supabase

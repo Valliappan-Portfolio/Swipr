@@ -12,7 +12,7 @@ interface SettingsProps {
   onSignOut?: () => void;
 }
 
-const languages: MovieLanguage[] = ['en', 'ta', 'ml', 'hi', 'te', 'kn'];
+const languages: MovieLanguage[] = ['en', 'ta', 'de', 'es'];
 const genres = [
   'Action', 'Adventure', 'Comedy', 'Drama', 'Fantasy',
   'Horror', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller'
