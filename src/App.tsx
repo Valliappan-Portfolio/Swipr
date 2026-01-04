@@ -225,9 +225,12 @@ function App() {
 
     // Fetch top-rated movies for cold start
     const loadTopRated = async () => {
-      const topRated = await getTopRatedMovies(userProfile.preferences.languages);
+      // For cold start, use English-only top-rated content (universally popular)
+      // This ensures new users see familiar, highly-rated movies first
+      const topRated = await getTopRatedMovies(['en']);
       setTopRatedMovies(topRated);
-      console.log('🌟 Top-rated movies loaded for cold start:', topRated.length);
+      console.log('🌟 Top-rated English movies loaded for cold start:', topRated.length);
+      console.log('📊 First 5 cold start movies:', topRated.slice(0, 5).map(m => m.title));
     };
 
     loadTopRated();

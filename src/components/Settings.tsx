@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Film, Tv, Clock, Tag, ArrowLeft, RotateCcw, CheckSquare, Globe, MessageSquare, LogOut } from 'lucide-react';
+import { Film, Tv, Clock, Tag, ArrowLeft, RotateCcw, CheckSquare, Globe, MessageSquare, LogOut, Sparkles, Calendar } from 'lucide-react';
 import type { MovieLanguage, ContentType, SeriesType, UserPreferences } from '../types';
 import { LANGUAGE_NAMES } from '../lib/tmdb';
 import { FeedbackForm } from './FeedbackForm';
@@ -12,11 +12,16 @@ interface SettingsProps {
   onSignOut?: () => void;
 }
 
-const languages: MovieLanguage[] = ['en', 'ta', 'de', 'es'];
-const genres = [
-  'Action', 'Adventure', 'Comedy', 'Drama', 'Fantasy',
-  'Horror', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller'
-];
+type Vibe = 'chill' | 'intense' | 'epic' | 'mindbending';
+
+const vibeToGenres: Record<Vibe, string[]> = {
+  chill: ['Comedy', 'Romance', 'Family'],
+  intense: ['Thriller', 'Drama', 'Mystery'],
+  epic: ['Action', 'Adventure', 'Fantasy'],
+  mindbending: ['Sci-Fi', 'Mystery', 'Thriller']
+};
+
+const currentYear = new Date().getFullYear();
 
 export function Settings({ initialName, initialPreferences, onSave, onBack, onSignOut }: SettingsProps) {
   const [showFeedback, setShowFeedback] = useState(false);
@@ -24,43 +29,52 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
   const [preferences, setPreferences] = useState<UserPreferences>(initialPreferences);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  const handleLanguageSelect = (language: MovieLanguage) => {
+  // Derive vibes from current genres
+  const getVibesFromGenres = (genres: string[]): Vibe[] => {
+    const vibes: Vibe[] = [];
+    Object.entries(vibeToGenres).forEach(([vibe, vibeGenres]) => {
+      if (vibeGenres.some(g => genres.includes(g))) {
+        vibes.push(vibe as Vibe);
+      }
+    });
+    return vibes;
+  };
+
+  const [selectedVibes, setSelectedVibes] = useState<Vibe[]>(getVibesFromGenres(initialPreferences.genres));
+
+  const handleVibeToggle = (vibe: Vibe) => {
+    const newVibes = selectedVibes.includes(vibe)
+      ? selectedVibes.filter(v => v !== vibe)
+      : [...selectedVibes, vibe];
+
+    setSelectedVibes(newVibes);
+
+    // Convert vibes to genres
+    const allGenres = newVibes.length > 0
+      ? [...new Set(newVibes.flatMap(v => vibeToGenres[v]))]
+      : ['Action', 'Comedy', 'Drama', 'Sci-Fi', 'Thriller'];
+
     setPreferences(prev => ({
       ...prev,
-      languages: prev.languages.includes(language)
-        ? prev.languages.filter(l => l !== language)
-        : [...prev.languages, language]
+      genres: allGenres
     }));
   };
 
   const handleContentTypeSelect = (type: ContentType) => {
     setPreferences(prev => ({
       ...prev,
-      contentType: type,
-      seriesType: type === 'series' || type === 'both' ? 'both' : undefined
+      contentType: type
     }));
   };
 
-  const handleSeriesTypeSelect = (type: SeriesType) => {
+  const handleEraSelect = (era: 'modern' | 'classic' | 'any') => {
     setPreferences(prev => ({
       ...prev,
-      seriesType: type
-    }));
-  };
-
-  const handleGenreSelect = (genre: string) => {
-    setPreferences(prev => ({
-      ...prev,
-      genres: prev.genres.includes(genre)
-        ? prev.genres.filter(g => g !== genre)
-        : [...prev.genres, genre]
-    }));
-  };
-
-  const handleSelectAllGenres = () => {
-    setPreferences(prev => ({
-      ...prev,
-      genres: prev.genres.length === genres.length ? [] : [...genres]
+      yearRange: era === 'modern'
+        ? [2015, currentYear]
+        : era === 'classic'
+        ? [1900, 2000]
+        : [1900, currentYear]
     }));
   };
 
@@ -127,22 +141,32 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
               />
             </section>
 
-            {/* Languages Section */}
+            {/* Vibes Section */}
             <section>
-              <h2 className="text-lg font-semibold text-white mb-4">Languages</h2>
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="h-5 w-5 text-yellow-400" />
+                <h2 className="text-lg font-semibold text-white">What's Your Vibe?</h2>
+              </div>
+              <p className="text-white/60 text-sm mb-4">Select all that apply</p>
               <div className="grid grid-cols-2 gap-4">
-                {languages.map(language => (
+                {[
+                  { id: 'chill', emoji: '😌', title: 'Chill & Light', desc: 'Comedy, Romance' },
+                  { id: 'intense', emoji: '😰', title: 'Intense & Gripping', desc: 'Thriller, Drama' },
+                  { id: 'epic', emoji: '🚀', title: 'Epic & Visual', desc: 'Action, Adventure' },
+                  { id: 'mindbending', emoji: '🤯', title: 'Mind-Bending', desc: 'Sci-Fi, Mystery' }
+                ].map((option) => (
                   <button
-                    key={language}
-                    onClick={() => handleLanguageSelect(language)}
-                    className={`p-4 rounded-lg text-left transition ${
-                      preferences.languages.includes(language)
-                        ? 'bg-white/30 text-white'
-                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                    key={option.id}
+                    onClick={() => handleVibeToggle(option.id as Vibe)}
+                    className={`p-4 rounded-xl border-2 transition-all ${
+                      selectedVibes.includes(option.id as Vibe)
+                        ? 'bg-white/20 border-white'
+                        : 'bg-white/10 border-white/20 hover:bg-white/15'
                     }`}
                   >
-                    <Globe className="inline-block mr-2 h-5 w-5" />
-                    {LANGUAGE_NAMES[language]}
+                    <div className="text-3xl mb-2">{option.emoji}</div>
+                    <div className="text-white font-semibold text-sm">{option.title}</div>
+                    <div className="text-white/60 text-xs mt-1">{option.desc}</div>
                   </button>
                 ))}
               </div>
@@ -235,33 +259,38 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
               )}
             </section>
 
-            {/* Genres Section */}
+            {/* Era Preference Section */}
             <section>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-white">Favorite Genres</h2>
-                <button
-                  onClick={handleSelectAllGenres}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition"
-                >
-                  <CheckSquare className="h-4 w-4" />
-                  {preferences.genres.length === genres.length ? 'Deselect All' : 'Select All'}
-                </button>
+              <div className="flex items-center gap-2 mb-4">
+                <Calendar className="h-5 w-5 text-purple-400" />
+                <h2 className="text-lg font-semibold text-white">Prefer Old or New?</h2>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                {genres.map(genre => (
-                  <button
-                    key={genre}
-                    onClick={() => handleGenreSelect(genre)}
-                    className={`p-4 rounded-lg text-left transition ${
-                      preferences.genres.includes(genre)
-                        ? 'bg-white/30 text-white'
-                        : 'bg-white/10 text-white/70 hover:bg-white/20'
-                    }`}
-                  >
-                    <Tag className="inline-block mr-2 h-5 w-5" />
-                    {genre}
-                  </button>
-                ))}
+              <div className="space-y-3">
+                {[
+                  { id: 'modern', emoji: '🆕', title: 'Modern Hits', desc: '2015 onwards' },
+                  { id: 'classic', emoji: '📼', title: 'Timeless Classics', desc: 'Before 2000' },
+                  { id: 'any', emoji: '🎞️', title: 'All Eras', desc: 'From silent films to today' }
+                ].map((option) => {
+                  const isSelected = preferences.yearRange[0] === (option.id === 'modern' ? 2015 : option.id === 'classic' ? 1900 : 1900) &&
+                                    preferences.yearRange[1] === (option.id === 'modern' ? currentYear : option.id === 'classic' ? 2000 : currentYear);
+                  return (
+                    <button
+                      key={option.id}
+                      onClick={() => handleEraSelect(option.id as any)}
+                      className={`w-full p-4 rounded-xl border-2 transition-all flex items-center gap-4 ${
+                        isSelected
+                          ? 'bg-white/20 border-white'
+                          : 'bg-white/10 border-white/20 hover:bg-white/15'
+                      }`}
+                    >
+                      <div className="text-3xl">{option.emoji}</div>
+                      <div className="flex-1 text-left">
+                        <div className="text-white font-semibold">{option.title}</div>
+                        <div className="text-white/60 text-sm">{option.desc}</div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </section>
 
