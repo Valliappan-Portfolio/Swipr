@@ -56,32 +56,49 @@ function App() {
   const [isLoadingUser, setIsLoadingUser] = useState(false);
 
   useEffect(() => {
-    const savedSeenMovies = localStorage.getItem('seenMovies');
-    if (savedSeenMovies) {
-      setSeenMovies(new Set(JSON.parse(savedSeenMovies)));
-    }
+    const initializeApp = async () => {
+      const savedSeenMovies = localStorage.getItem('seenMovies');
+      if (savedSeenMovies) {
+        setSeenMovies(new Set(JSON.parse(savedSeenMovies)));
+      }
 
-    const storedId = getStoredPreferenceId();
-    if (storedId) {
-      setPreferenceId(storedId);
-    }
+      const storedId = getStoredPreferenceId();
+      if (storedId) {
+        setPreferenceId(storedId);
+      }
 
-    const storedUserId = getStoredUserId();
-    if (storedUserId) {
-      setUserId(storedUserId);
-    }
+      const storedUserId = getStoredUserId();
+      const storedUsername = getStoredUsername();
+      const storedEmail = getStoredEmail();
 
-    const storedUsername = getStoredUsername();
-    if (storedUsername) {
-      setUsername(storedUsername);
-    }
+      if (storedUserId && storedUsername && storedEmail) {
+        console.log('🔄 Returning user detected, loading data from Supabase...');
+        setUserId(storedUserId);
+        setUsername(storedUsername);
+        setEmail(storedEmail);
+        setIsLoadingUser(true);
 
-    const storedEmail = getStoredEmail();
-    if (storedEmail) {
-      setEmail(storedEmail);
-    }
+        // Load user preferences from Supabase
+        const existingData = await getUserPreferences(storedUserId);
+        if (existingData) {
+          const profile = { name: existingData.name, preferences: existingData.preferences };
+          setUserProfile(profile);
+          localStorage.setItem('userProfile', JSON.stringify(profile));
+          setPreferenceId(existingData.preferenceId);
+          storePreferenceId(existingData.preferenceId);
+          console.log('✅ Loaded returning user preferences:', { name: existingData.name, preferenceId: existingData.preferenceId });
+        }
 
-    // Watchlist will be loaded from Supabase after authentication
+        // Load watchlist from Supabase
+        const watchlist = await getSupabaseWatchlist(storedUserId);
+        setUnwatchedMovies(watchlist);
+        console.log('✅ Loaded returning user watchlist:', watchlist.length, 'items');
+
+        setIsLoadingUser(false);
+      }
+    };
+
+    initializeApp();
   }, []);
 
   const fetchContent = async (page: number, usePersonalized: boolean = true) => {
@@ -405,6 +422,7 @@ function App() {
     return <HomePage onStart={handleStartApp} />;
   }
 
+  // Show auth screen if no user credentials in localStorage
   if (!userId || !username || !email) {
     return (
       <Auth
@@ -426,6 +444,9 @@ function App() {
             setPreferenceId(existingData.preferenceId);
             storePreferenceId(existingData.preferenceId);
             console.log('✅ Restored user data:', { name: existingData.name, preferenceId: existingData.preferenceId });
+            console.log('✅ User is returning user - will skip onboarding');
+          } else {
+            console.log('⚠️ User is new - will show onboarding');
           }
 
           // Load watchlist from Supabase
@@ -439,6 +460,7 @@ function App() {
     );
   }
 
+  // Show loading spinner while fetching user data
   if (isLoadingUser) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-cyan-900 to-slate-900 flex items-center justify-center">
@@ -450,7 +472,7 @@ function App() {
     );
   }
 
-  // Skip onboarding for returning users who already have preferences
+  // Show onboarding ONLY for new users (no preferences in Supabase)
   if (!userProfile) {
     return <Onboarding onComplete={handleOnboardingComplete} initialName={username || ''} />;
   }

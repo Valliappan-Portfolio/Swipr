@@ -10,7 +10,10 @@
       "Bash(netlify sites:create:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(netlify status:*)",
+      "Bash(netlify sites:list:*)",
+      "Bash(netlify link:*)"
     ]
   }
 }
