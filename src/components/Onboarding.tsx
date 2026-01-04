@@ -23,7 +23,8 @@ export function Onboarding({ onComplete, initialName = '' }: OnboardingProps) {
   const [step, setStep] = useState(0);
   const [vibes, setVibes] = useState<Vibe[]>([]);
   const [timeCommitment, setTimeCommitment] = useState<TimeCommitment | null>(null);
-  const [languages, setLanguages] = useState<MovieLanguage[]>(['en']);
+  // Default to multi-language for global audience (English + Indian languages)
+  const [languages] = useState<MovieLanguage[]>(['en', 'ta', 'hi', 'ml']);
   const [era, setEra] = useState<'modern' | 'classic' | 'any'>('modern');
 
   const handleComplete = () => {
@@ -147,45 +148,6 @@ export function Onboarding({ onComplete, initialName = '' }: OnboardingProps) {
         return (
           <div className="space-y-8 animate-fadeIn">
             <div className="text-center">
-              <Globe className="h-16 w-16 text-green-400 mx-auto mb-4 animate-pulse" />
-              <h2 className="text-3xl font-bold text-white mb-2">Language preference?</h2>
-              <p className="text-white/70">Select all that apply</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { id: 'en', flag: '🇺🇸', name: 'English' },
-                { id: 'ta', flag: '🇮🇳', name: 'Tamil' },
-                { id: 'de', flag: '🇩🇪', name: 'German' },
-                { id: 'es', flag: '🇪🇸', name: 'Spanish' }
-              ].map((lang) => (
-                <button
-                  key={lang.id}
-                  onClick={() => {
-                    setLanguages(prev =>
-                      prev.includes(lang.id as MovieLanguage)
-                        ? prev.filter(l => l !== lang.id)
-                        : [...prev, lang.id as MovieLanguage]
-                    );
-                  }}
-                  className={`p-4 rounded-xl border-2 transition-all ${
-                    languages.includes(lang.id as MovieLanguage)
-                      ? 'bg-white/20 border-white'
-                      : 'bg-white/5 border-white/20 hover:bg-white/10'
-                  }`}
-                >
-                  <div className="text-3xl mb-1">{lang.flag}</div>
-                  <div className="text-white font-medium text-sm">{lang.name}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 3:
-        return (
-          <div className="space-y-8 animate-fadeIn">
-            <div className="text-center">
               <Calendar className="h-16 w-16 text-purple-400 mx-auto mb-4 animate-pulse" />
               <h2 className="text-3xl font-bold text-white mb-2">Prefer old or new?</h2>
               <p className="text-white/70">When were your favorites made?</p>
@@ -231,13 +193,13 @@ export function Onboarding({ onComplete, initialName = '' }: OnboardingProps) {
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-white/60 text-sm">Step {step + 1} of 4</span>
-            <span className="text-white/60 text-sm">{Math.round(((step + 1) / 4) * 100)}%</span>
+            <span className="text-white/60 text-sm">Step {step + 1} of 3</span>
+            <span className="text-white/60 text-sm">{Math.round(((step + 1) / 3) * 100)}%</span>
           </div>
           <div className="h-2 bg-white/10 rounded-full overflow-hidden">
             <div
               className="h-full bg-white rounded-full transition-all duration-500"
-              style={{ width: `${((step + 1) / 4) * 100}%` }}
+              style={{ width: `${((step + 1) / 3) * 100}%` }}
             />
           </div>
         </div>
@@ -257,13 +219,10 @@ export function Onboarding({ onComplete, initialName = '' }: OnboardingProps) {
               </button>
             )}
 
-            {step < 3 ? (
+            {step < 2 ? (
               <button
                 onClick={() => setStep(step + 1)}
-                disabled={
-                  (step === 2 && languages.length === 0)
-                }
-                className="flex-1 px-6 py-3 rounded-xl bg-white text-gray-900 hover:bg-white/90 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-6 py-3 rounded-xl bg-white text-gray-900 hover:bg-white/90 transition font-semibold"
               >
                 Continue
               </button>

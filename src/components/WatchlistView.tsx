@@ -272,7 +272,7 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
       {movies.map(movie => (
         <div
           key={`watchlist-${movie.id}-${movie.type}`}
-          className="bg-white/10 backdrop-blur-sm rounded-lg overflow-hidden cursor-pointer transition hover:bg-white/20"
+          className="bg-white/10 backdrop-blur-sm rounded-lg overflow-hidden cursor-pointer transition hover:bg-white/20 border border-white/10 hover:border-white/30"
           onClick={() => {
             fetchStreamingInfo(movie.id, movie.type);
             fetchMovieDetails(movie.id, movie.type);
@@ -287,16 +287,26 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
             />
             <div className="flex-1 ml-4">
               <h3 className="text-lg font-semibold text-white">{movie.title}</h3>
-              <p className="text-sm text-white/80 line-clamp-2 mt-1">
-                {movie.overview}
+
+              {/* Full description - show less when collapsed, full when expanded */}
+              <p className={`text-sm text-white/80 mt-1 ${selectedMovie === movie.id ? '' : 'line-clamp-2'}`}>
+                {movie.overview || 'No description available.'}
               </p>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-sm text-white/60">
+
+              <div className="flex items-center gap-3 mt-2">
+                <span className="text-sm text-white/60 flex items-center gap-1">
+                  <Calendar className="h-4 w-4" />
                   {new Date(movie.releaseDate).getFullYear()}
                 </span>
-                <span className="text-sm text-white/60">
-                  ⭐️ {movie.voteAverage.toFixed(1)}
+                <span className="text-sm text-white/60 flex items-center gap-1">
+                  <Star className="h-4 w-4 text-yellow-400" />
+                  {movie.voteAverage.toFixed(1)}
                 </span>
+                {movie.genres && movie.genres.length > 0 && (
+                  <span className="text-sm text-white/60">
+                    {movie.genres.slice(0, 2).join(', ')}
+                  </span>
+                )}
               </div>
 
               {/* Show expanded details when selected */}

@@ -616,7 +616,7 @@ function App() {
             }`}
           >
             <Sparkles className="h-5 w-5" />
-            <span className="text-sm">Surprise</span>
+            <span className="text-sm">Moods</span>
           </button>
         </div>
       </nav>

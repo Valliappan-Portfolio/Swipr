@@ -268,14 +268,20 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
 
         {/* Movie Details Overlay */}
         {showDetails && (
-          <div 
-            className="absolute inset-0 flex flex-col justify-end z-10"
-            onClick={() => setShowDetails(false)}
-          >
-            {/* Semi-transparent gradient background */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent pointer-events-none" />
-            
-            <div className="relative p-4 space-y-2">
+          <div className="absolute inset-0 flex flex-col justify-end z-10">
+            {/* Semi-transparent gradient background - clickable to close */}
+            <div
+              className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDetails(false);
+              }}
+            />
+
+            <div
+              className="relative p-4 space-y-2"
+              onClick={(e) => e.stopPropagation()}
+            >
               <h3 className="text-2xl font-bold text-white">
                 {movie.title}
               </h3>
@@ -285,7 +291,7 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
                   {movie.overview}
                 </p>
               )}
-              
+
               <div className="flex flex-wrap gap-3 text-white text-sm">
                 {movie.releaseDate && (
                   <div className="flex items-center gap-1">

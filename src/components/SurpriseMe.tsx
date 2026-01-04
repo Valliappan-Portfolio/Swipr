@@ -201,7 +201,7 @@ export function SurpriseMe({ onClose, preferences }: SurpriseMeProps) {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <Sparkles className="h-6 w-6 text-white" />
-              <h2 className="text-2xl font-bold text-white">Surprise Me</h2>
+              <h2 className="text-2xl font-bold text-white">Mood-Based Picks</h2>
             </div>
             <button
               onClick={onClose}
