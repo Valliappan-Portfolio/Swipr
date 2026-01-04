@@ -370,30 +370,15 @@ class SmartRecommendationEngine {
 
   // Get personalized movie recommendations with cold start
   getPersonalizedRecommendations(movies: Movie[], coldStartMovies?: Movie[]): Movie[] {
-    // Cold start: First 5 swipes show top-rated movies
-    if (this.userSession.sessionStats.totalSwipes < 5 && coldStartMovies && coldStartMovies.length > 0) {
-      console.log('❄️ Cold start mode: Showing top-rated movies', {
+    // Cold start: First 10 swipes show ONLY top-rated English content
+    if (this.userSession.sessionStats.totalSwipes < 10 && coldStartMovies && coldStartMovies.length > 0) {
+      console.log('❄️ Cold start mode: Showing ONLY top-rated English content (first 10 swipes)', {
         swipeCount: this.userSession.sessionStats.totalSwipes,
-        topRatedCount: coldStartMovies.length
+        topRatedCount: coldStartMovies.length,
+        remainingColdStartSwipes: 10 - this.userSession.sessionStats.totalSwipes
       });
-      // Return top-rated movies first
-      return coldStartMovies.slice(0, 10 - this.userSession.sessionStats.totalSwipes);
-    }
-
-    // Swipes 5-10: Blended approach (50% top-rated, 50% diverse)
-    if (this.userSession.sessionStats.totalSwipes < 10) {
-      console.log('🔄 Blended mode: Mixing top-rated with diverse content', {
-        swipeCount: this.userSession.sessionStats.totalSwipes
-      });
-      const diverse = this.getDiverseSelection(movies).slice(0, 10);
-      const topRated = (coldStartMovies || []).slice(0, 5);
-      // Interleave top-rated and diverse
-      const blended: Movie[] = [];
-      for (let i = 0; i < Math.max(diverse.length, topRated.length); i++) {
-        if (topRated[i]) blended.push(topRated[i]);
-        if (diverse[i]) blended.push(diverse[i]);
-      }
-      return blended;
+      // Return ONLY top-rated content for first 10 swipes
+      return coldStartMovies.slice(0, 10);
     }
 
     // For experienced users (10+ swipes), use smart scoring

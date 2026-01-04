@@ -8,7 +8,7 @@ interface OnboardingProps {
 }
 
 type Vibe = 'chill' | 'intense' | 'epic' | 'mindbending';
-type TimeCommitment = 'quick' | 'series' | 'both';
+type TimeCommitment = 'movies' | 'series' | 'both';
 
 const vibeToGenres: Record<Vibe, string[]> = {
   chill: ['Comedy', 'Romance', 'Family'],
@@ -117,9 +117,9 @@ export function Onboarding({ onComplete, initialName = '' }: OnboardingProps) {
 
             <div className="space-y-4">
               {[
-                { id: 'quick', emoji: '⚡', title: 'Quick Escape', desc: 'Movies under 2 hours', time: '< 2hrs' },
-                { id: 'series', emoji: '📺', title: 'Ready to Binge', desc: 'TV series & shows', time: 'Series' },
-                { id: 'both', emoji: '🎬', title: 'I\'m Flexible', desc: 'Show me everything', time: 'Any' }
+                { id: 'movies', emoji: '🎬', title: 'Movies Only', desc: 'Feature films and cinema', time: 'Movies' },
+                { id: 'series', emoji: '📺', title: 'Series Only', desc: 'TV shows and series', time: 'Series' },
+                { id: 'both', emoji: '✨', title: 'Both', desc: 'Mix of movies and series', time: 'Both' }
               ].map((option) => (
                 <button
                   key={option.id}

@@ -10,7 +10,7 @@ import { SurpriseMe } from './components/SurpriseMe';
 import { UserStats } from './components/UserStats';
 import { UndoButton } from './components/UndoButton';
 import { ConnectionTest } from './components/ConnectionTest';
-import { getMovies, getTVSeries, getTopRatedMovies } from './lib/tmdb';
+import { getMovies, getTVSeries, getTopRatedMovies, getTopRatedSeries } from './lib/tmdb';
 import { intelligentRecommendationEngine } from './lib/intelligentRecommendations';
 import { smartRecommendationEngine } from './lib/smartRecommendations';
 import { saveUserPreferences, saveMovieAction, getStoredPreferenceId, storePreferenceId, getStoredUserId, storeUserId, getStoredUsername, storeUsername, getStoredEmail, storeEmail, getUserPreferences, addToWatchlist as addToSupabaseWatchlist, getWatchlist as getSupabaseWatchlist, removeFromWatchlist } from './lib/supabase';
@@ -223,14 +223,30 @@ function App() {
     setMovies([]);
     setCurrentIndex(0);
 
-    // Fetch top-rated movies for cold start
+    // Fetch top-rated content for cold start based on user's content type preference
     const loadTopRated = async () => {
-      // For cold start, use English-only top-rated content (universally popular)
-      // This ensures new users see familiar, highly-rated movies first
-      const topRated = await getTopRatedMovies(['en']);
+      const { contentType } = userProfile.preferences;
+      let topRated: Movie[] = [];
+
+      // Load top-rated content based on user's preference
+      if (contentType === 'movies') {
+        const topMovies = await getTopRatedMovies(['en']);
+        topRated = topMovies;
+        console.log('🌟 Top-rated English MOVIES loaded for cold start:', topMovies.length);
+      } else if (contentType === 'series') {
+        const topSeries = await getTopRatedSeries(['en']);
+        topRated = topSeries;
+        console.log('🌟 Top-rated English SERIES loaded for cold start:', topSeries.length);
+      } else {
+        // 'both' - mix of movies and series
+        const topMovies = await getTopRatedMovies(['en']);
+        const topSeries = await getTopRatedSeries(['en']);
+        topRated = [...topMovies.slice(0, 5), ...topSeries.slice(0, 5)].sort(() => Math.random() - 0.5);
+        console.log('🌟 Top-rated English MOVIES & SERIES loaded for cold start:', topRated.length);
+      }
+
       setTopRatedMovies(topRated);
-      console.log('🌟 Top-rated English movies loaded for cold start:', topRated.length);
-      console.log('📊 First 5 cold start movies:', topRated.slice(0, 5).map(m => m.title));
+      console.log('📊 First 5 cold start items:', topRated.slice(0, 5).map(m => `${m.title} (${m.type})`));
     };
 
     loadTopRated();

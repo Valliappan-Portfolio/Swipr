@@ -53,21 +53,15 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
   const stackRotate = -2 * stackIndex;
   const stackOpacity = 1 - (stackIndex * 0.2);
 
+  // Don't auto-show details - only show when user taps/clicks poster
   useEffect(() => {
-    if (!active || showTutorial || isDraggingRef.current) return;
-
-    detailsTimeoutRef.current = window.setTimeout(() => {
-      if (!isDraggingRef.current) {
-        setShowDetails(true);
-      }
-    }, 500) as unknown as number;
-
+    // Clean up timeout on unmount
     return () => {
       if (detailsTimeoutRef.current) {
         clearTimeout(detailsTimeoutRef.current);
       }
     };
-  }, [active, showTutorial]);
+  }, []);
 
   useEffect(() => {
     if (!active || !showTutorial) return;
@@ -139,8 +133,8 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
     const velocity = Math.max(Math.abs(info.velocity.x), Math.abs(info.velocity.y));
     
     // Improved thresholds for better mobile experience
-    const swipeThreshold = 80; // Reduced threshold for easier swiping
-    const velocityThreshold = 300; // Lower velocity threshold
+    const swipeThreshold = 70; // Reduced threshold for easier swiping on mobile
+    const velocityThreshold = 250; // Lower velocity threshold for better touch response
     
     console.log('👆 Swipe detected:', {
       movie: movie.title,
@@ -153,10 +147,14 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
     // Check for upward swipe first (unwatched action)
     if (info.offset.y < -swipeThreshold || (info.velocity.y < -velocityThreshold && yOffset > 30)) {
       console.log('📚 Adding to watchlist:', movie.title);
-      await controls.start({ 
-        y: -300, 
+      await controls.start({
+        y: -300,
         opacity: 0,
-        transition: { duration: 0.3, type: "spring", velocity: Math.abs(info.velocity.y) }
+        transition: {
+          duration: 0.25,
+          ease: [0.4, 0, 0.2, 1], // Smooth cubic-bezier easing
+          velocity: Math.abs(info.velocity.y)
+        }
       });
       onAction('unwatched');
     }
@@ -165,26 +163,29 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
       const direction = info.offset.x > 0 ? 1 : -1;
       const action = direction > 0 ? 'like' : 'pass';
       console.log(`${action === 'like' ? '❤️' : '👎'} ${action}:`, movie.title);
-      await controls.start({ 
+      await controls.start({
         x: direction * 300,
         opacity: 0,
-        transition: { duration: 0.3, type: "spring", velocity: Math.abs(info.velocity.x) }
+        transition: {
+          duration: 0.25,
+          ease: [0.4, 0, 0.2, 1], // Smooth cubic-bezier easing
+          velocity: Math.abs(info.velocity.x)
+        }
       });
       onAction(action);
     }
     // Return to center if no action triggered
     else {
-      controls.start({ 
-        x: 0, 
+      controls.start({
+        x: 0,
         y: 0,
-        transition: { type: "spring", stiffness: 300, damping: 20 }
-      });
-      
-      detailsTimeoutRef.current = window.setTimeout(() => {
-        if (!isDraggingRef.current) {
-          setShowDetails(true);
+        transition: {
+          type: "spring",
+          stiffness: 400, // Increased for snappier return
+          damping: 25,    // Smooth damping
+          mass: 0.5       // Lighter feel
         }
-      }, 500) as unknown as number;
+      });
     }
   };
 
@@ -218,21 +219,39 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
       }}
       transition={{
         type: "spring",
-        stiffness: 300,
-        damping: 20
+        stiffness: 350,
+        damping: 22,
+        mass: 0.8
       }}
       drag={active}
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-      dragElastic={0.8}
+      dragElastic={0.7}  // Slightly reduced for more responsive feel
       dragMomentum={true}
+      dragTransition={{
+        power: 0.2,      // Smoother drag momentum
+        timeConstant: 200 // Faster settling
+      }}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       className={`absolute w-full max-w-sm ${active ? 'cursor-grab active:cursor-grabbing' : ''} touch-none will-change-transform`}
-      whileDrag={{ scale: 1.05, cursor: 'grabbing' }}
+      whileDrag={{
+        scale: 1.03,     // Slightly reduced for subtler effect
+        cursor: 'grabbing',
+        transition: { duration: 0.1 }
+      }}
       onHoverStart={() => active && setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
     >
-      <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-white shadow-xl">
+      <div
+        className="relative aspect-[2/3] overflow-hidden rounded-xl bg-white shadow-xl"
+        onClick={(e) => {
+          // Only toggle details if not dragging and clicking on poster area
+          if (!isDraggingRef.current && active) {
+            e.stopPropagation();
+            setShowDetails(prev => !prev);
+          }
+        }}
+      >
         {/* Progressive Image Loading */}
         <div className="relative h-full w-full">
           {/* Low quality thumbnail */}
@@ -245,7 +264,7 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
             onLoad={() => setThumbnailLoaded(true)}
             loading="eager"
           />
-          
+
           {/* High quality image */}
           <img
             src={getPosterUrl(movie.posterPath, 'MEDIUM')}

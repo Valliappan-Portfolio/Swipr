@@ -136,7 +136,7 @@ export async function getTopRatedMovies(languages: string[] = ['en']) {
       url.searchParams.append('sort_by', 'vote_average.desc');
       url.searchParams.append('include_adult', 'false');
       url.searchParams.append('vote_count.gte', '1000'); // Ensure popular movies with many votes
-      url.searchParams.append('vote_average.gte', '8.5'); // Only highly rated
+      url.searchParams.append('vote_average.gte', '8.0'); // Lowered from 8.5 to get more results
       url.searchParams.append('with_original_language', language);
       url.searchParams.append('page', '1');
 
@@ -186,6 +186,69 @@ export async function getTopRatedMovies(languages: string[] = ['en']) {
     return movies;
   } catch (error) {
     console.error('[TMDB] Error fetching top-rated movies:', error);
+    return [];
+  }
+}
+
+export async function getTopRatedSeries(languages: string[] = ['en']) {
+  try {
+    const seriesPromises = languages.map(async (language) => {
+      const url = new URL(`${TMDB_BASE_URL}/discover/tv`);
+      url.searchParams.append('api_key', TMDB_API_KEY);
+      url.searchParams.append('language', 'en-US');
+      url.searchParams.append('sort_by', 'vote_average.desc');
+      url.searchParams.append('include_adult', 'false');
+      url.searchParams.append('vote_count.gte', '500'); // Lower threshold for TV series
+      url.searchParams.append('vote_average.gte', '8.0'); // Only highly rated
+      url.searchParams.append('with_original_language', language);
+      url.searchParams.append('page', '1');
+
+      const response = await fetch(url.toString());
+      const data = await response.json();
+
+      return (data.results || []).map((show: any) => ({
+        ...show,
+        language
+      }));
+    });
+
+    const allSeriesArrays = await Promise.all(seriesPromises);
+    const allSeries = allSeriesArrays.flat().sort((a, b) => {
+      // Sort by rating first
+      const ratingDiff = b.vote_average - a.vote_average;
+      if (Math.abs(ratingDiff) > 0.1) return ratingDiff;
+      // If rating is similar, sort by vote count
+      return b.vote_count - a.vote_count;
+    });
+
+    const series = allSeries
+      .filter(show => {
+        const hasValidPoster = !!show.poster_path;
+        const hasValidTitle = !!show.name;
+        return hasValidPoster && hasValidTitle;
+      })
+      .map(show => ({
+        id: show.id,
+        title: show.name,
+        overview: show.overview || '',
+        posterPath: show.poster_path,
+        releaseDate: show.first_air_date || '',
+        voteAverage: show.vote_average || 0,
+        genres: (show.genre_ids || [])
+          .map(id => TV_GENRE_NAMES[id])
+          .filter(Boolean),
+        type: 'series' as const,
+        language: show.language
+      }));
+
+    console.log('🌟 Top-rated series fetched:', {
+      count: series.length,
+      topRatings: series.slice(0, 5).map(s => ({ title: s.title, rating: s.voteAverage }))
+    });
+
+    return series;
+  } catch (error) {
+    console.error('[TMDB] Error fetching top-rated series:', error);
     return [];
   }
 }

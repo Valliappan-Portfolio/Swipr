@@ -162,7 +162,19 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
 
   const renderStreamingProviders = (movieId: number) => {
     const info = streamingInfo[movieId];
-    if (!info?.IN) return null;
+
+    // If we haven't fetched yet, don't show anything
+    if (!info) return null;
+
+    // If no providers in India
+    if (!info.IN) {
+      return (
+        <div className="mt-3 flex items-center gap-2">
+          <Play className="h-4 w-4 text-white/40" />
+          <span className="text-xs text-white/50">Not available on streaming in India</span>
+        </div>
+      );
+    }
 
     const providers = info.IN;
     const allProviders = [
@@ -171,7 +183,14 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
       ...(providers.ads || [])
     ];
 
-    if (allProviders.length === 0) return null;
+    if (allProviders.length === 0) {
+      return (
+        <div className="mt-3 flex items-center gap-2">
+          <Play className="h-4 w-4 text-white/40" />
+          <span className="text-xs text-white/50">Not available on streaming in India</span>
+        </div>
+      );
+    }
 
     // Remove duplicate providers
     const uniqueProviders = allProviders.filter((provider, index, self) =>
@@ -179,22 +198,29 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
     );
 
     return (
-      <div className="mt-3 flex items-center gap-2">
-        <span className="text-xs text-white/60">Watch on:</span>
-        <div className="flex gap-2">
+      <div className="mt-3 border-t border-white/10 pt-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Play className="h-4 w-4 text-white/60" />
+          <span className="text-sm font-medium text-white/80">Available on:</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
           {uniqueProviders.map(provider => (
             <button
               key={`provider-${movieId}-${provider.provider_id}`}
-              onClick={() => handleProviderClick(provider.provider_id, 'IN')}
-              className="group relative"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleProviderClick(provider.provider_id, 'IN');
+              }}
+              className="group relative flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition border border-white/20"
               title={`Watch on ${provider.provider_name}`}
             >
               <img
                 src={`https://image.tmdb.org/t/p/original${provider.logo_path}`}
                 alt={provider.provider_name}
-                className="w-6 h-6 rounded-full transition transform group-hover:scale-110"
+                className="w-5 h-5 rounded transition transform group-hover:scale-110"
               />
-              <ExternalLink className="absolute -top-1 -right-1 h-3 w-3 text-white opacity-0 group-hover:opacity-100 transition" />
+              <span className="text-xs text-white/90">{provider.provider_name}</span>
+              <ExternalLink className="h-3 w-3 text-white/60 group-hover:text-white transition" />
             </button>
           ))}
         </div>
