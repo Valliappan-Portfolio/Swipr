@@ -4,6 +4,7 @@ import type { MovieLanguage, ContentType, UserPreferences } from '../types';
 
 interface OnboardingProps {
   onComplete: (name: string, preferences: UserPreferences) => void;
+  initialName?: string;
 }
 
 type Vibe = 'chill' | 'intense' | 'epic' | 'mindbending';
@@ -18,20 +19,14 @@ const vibeToGenres: Record<Vibe, string[]> = {
 
 const currentYear = new Date().getFullYear();
 
-export function Onboarding({ onComplete }: OnboardingProps) {
+export function Onboarding({ onComplete, initialName = '' }: OnboardingProps) {
   const [step, setStep] = useState(0);
-  const [name, setName] = useState('');
   const [vibes, setVibes] = useState<Vibe[]>([]);
   const [timeCommitment, setTimeCommitment] = useState<TimeCommitment | null>(null);
   const [languages, setLanguages] = useState<MovieLanguage[]>(['en']);
   const [era, setEra] = useState<'modern' | 'classic' | 'any'>('modern');
 
   const handleComplete = () => {
-    if (!name.trim()) {
-      alert('Please enter your name to continue');
-      return;
-    }
-
     // Collect all genres from selected vibes
     const allGenres = vibes.length > 0
       ? [...new Set(vibes.flatMap(v => vibeToGenres[v]))]
@@ -49,7 +44,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
         : [1900, currentYear]
     };
 
-    onComplete(name.trim(), preferences);
+    onComplete(initialName || 'User', preferences);
   };
 
   const gradients = [
@@ -66,20 +61,13 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           <div className="space-y-8 animate-fadeIn">
             <div className="text-center">
               <Sparkles className="h-16 w-16 text-yellow-400 mx-auto mb-4 animate-pulse" />
-              <h2 className="text-3xl font-bold text-white mb-2">Welcome! What's your name?</h2>
-              <p className="text-white/70">Let's personalize your experience</p>
+              <h2 className="text-3xl font-bold text-white mb-2">
+                Welcome{initialName ? `, ${initialName}` : ''}!
+              </h2>
+              <p className="text-white/70">Let's find your perfect movie match</p>
             </div>
 
             <div className="space-y-6">
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your name"
-                className="w-full px-4 py-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:outline-none focus:border-white/40 transition text-center text-lg"
-                autoFocus
-              />
-
               <div>
                 <p className="text-white font-semibold mb-3 text-center">What's your vibe?</p>
                 <p className="text-white/60 text-sm text-center mb-4">Select all that apply</p>

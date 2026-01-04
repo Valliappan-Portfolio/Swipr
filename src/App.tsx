@@ -450,8 +450,9 @@ function App() {
     );
   }
 
+  // Skip onboarding for returning users who already have preferences
   if (!userProfile) {
-    return <Onboarding onComplete={handleOnboardingComplete} />;
+    return <Onboarding onComplete={handleOnboardingComplete} initialName={username || ''} />;
   }
 
   if (currentView === 'settings') {
