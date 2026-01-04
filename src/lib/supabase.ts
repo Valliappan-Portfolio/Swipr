@@ -262,7 +262,11 @@ export async function saveMovieAction(
   movieId: number,
   action: string,
   genres: string[],
-  language: string
+  language: string,
+  movieTitle?: string,
+  releaseYear?: number,
+  rating?: number,
+  director?: string
 ) {
   try {
     const { error } = await supabase
@@ -273,7 +277,11 @@ export async function saveMovieAction(
         movie_id: movieId,
         action,
         genres,
-        language
+        language,
+        movie_title: movieTitle,
+        release_year: releaseYear,
+        rating,
+        director
       }]);
 
     if (error) throw error;

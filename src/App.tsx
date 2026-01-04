@@ -293,15 +293,23 @@ function App() {
     
     setCurrentGradient(prev => (prev + 1) % gradients.length);
 
-    // Save action to database for recommendations
+    // Save action to database for recommendations with metadata
     if (userId && preferenceId) {
+      const releaseYear = currentMovie.releaseDate
+        ? new Date(currentMovie.releaseDate).getFullYear()
+        : undefined;
+
       await saveMovieAction(
         userId,
         preferenceId,
         currentMovie.id,
         action,
         currentMovie.genres,
-        currentMovie.language || 'en'
+        currentMovie.language || 'en',
+        currentMovie.title,
+        releaseYear,
+        currentMovie.voteAverage,
+        undefined // director - will add later if needed
       );
 
       // Update intelligent recommendation engine

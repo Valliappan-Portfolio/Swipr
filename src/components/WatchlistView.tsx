@@ -86,7 +86,15 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
   const [loadingProviders, setLoadingProviders] = useState<{ [key: number]: boolean }>({});
   const [movieDetails, setMovieDetails] = useState<{ [key: number]: MovieDetails }>({});
   const [loadingDetails, setLoadingDetails] = useState<{ [key: number]: boolean }>({});
-  const [selectedMovie, setSelectedMovie] = useState<number | null>(null);
+  const [collapsedMovies, setCollapsedMovies] = useState<Set<number>>(new Set()); // Track which movies are collapsed
+
+  // Auto-fetch details and streaming info for all movies on mount
+  React.useEffect(() => {
+    movies.forEach(movie => {
+      fetchStreamingInfo(movie.id, movie.type);
+      fetchMovieDetails(movie.id, movie.type);
+    });
+  }, [movies]);
 
   const handleAction = async (movieId: number, action: 'like' | 'pass') => {
     try {
@@ -166,50 +174,58 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
     // If we haven't fetched yet, don't show anything
     if (!info) return null;
 
-    // If no providers in India
-    if (!info.IN) {
-      return (
-        <div className="mt-3 flex items-center gap-2">
-          <Play className="h-4 w-4 text-white/40" />
-          <span className="text-xs text-white/50">Not available on streaming in India</span>
-        </div>
-      );
-    }
+    // Check multiple regions: India, US, UK, Germany
+    const regions = ['IN', 'US', 'GB', 'DE'];
+    const allProviders: { provider: any; region: string }[] = [];
 
-    const providers = info.IN;
-    const allProviders = [
-      ...(providers.flatrate || []),
-      ...(providers.free || []),
-      ...(providers.ads || [])
-    ];
+    regions.forEach(region => {
+      if (info[region]) {
+        const providers = info[region];
+        const regionProviders = [
+          ...(providers.flatrate || []),
+          ...(providers.free || []),
+          ...(providers.ads || [])
+        ];
+        regionProviders.forEach(provider => {
+          allProviders.push({ provider, region });
+        });
+      }
+    });
 
     if (allProviders.length === 0) {
       return (
         <div className="mt-3 flex items-center gap-2">
           <Play className="h-4 w-4 text-white/40" />
-          <span className="text-xs text-white/50">Not available on streaming in India</span>
+          <span className="text-xs text-white/50">Not available on major streaming platforms</span>
         </div>
       );
     }
 
-    // Remove duplicate providers
-    const uniqueProviders = allProviders.filter((provider, index, self) =>
-      index === self.findIndex(p => p.provider_id === provider.provider_id)
+    // Remove duplicate providers (same provider across regions)
+    const uniqueProviders = allProviders.filter((item, index, self) =>
+      index === self.findIndex(p => p.provider.provider_id === item.provider.provider_id)
     );
+
+    const regionNames: { [key: string]: string } = {
+      'IN': '🇮🇳',
+      'US': '🇺🇸',
+      'GB': '🇬🇧',
+      'DE': '🇩🇪'
+    };
 
     return (
       <div className="mt-3 border-t border-white/10 pt-3">
         <div className="flex items-center gap-2 mb-2">
           <Play className="h-4 w-4 text-white/60" />
-          <span className="text-sm font-medium text-white/80">Available on:</span>
+          <span className="text-sm font-medium text-white/80">Streaming on:</span>
         </div>
         <div className="flex flex-wrap gap-2">
-          {uniqueProviders.map(provider => (
+          {uniqueProviders.map(({ provider, region }) => (
             <button
               key={`provider-${movieId}-${provider.provider_id}`}
               onClick={(e) => {
                 e.stopPropagation();
-                handleProviderClick(provider.provider_id, 'IN');
+                handleProviderClick(provider.provider_id, region);
               }}
               className="group relative flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition border border-white/20"
               title={`Watch on ${provider.provider_name}`}
@@ -220,6 +236,7 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
                 className="w-5 h-5 rounded transition transform group-hover:scale-110"
               />
               <span className="text-xs text-white/90">{provider.provider_name}</span>
+              <span className="text-xs">{regionNames[region]}</span>
               <ExternalLink className="h-3 w-3 text-white/60 group-hover:text-white transition" />
             </button>
           ))}
@@ -295,92 +312,107 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
 
   return (
     <div className="grid gap-4 pb-20">
-      {movies.map(movie => (
-        <div
-          key={`watchlist-${movie.id}-${movie.type}`}
-          className="bg-white/10 backdrop-blur-sm rounded-lg overflow-hidden cursor-pointer transition hover:bg-white/20 border border-white/10 hover:border-white/30"
-          onClick={() => {
-            fetchStreamingInfo(movie.id, movie.type);
-            fetchMovieDetails(movie.id, movie.type);
-            setSelectedMovie(selectedMovie === movie.id ? null : movie.id);
-          }}
-        >
-          <div className="flex items-start p-4">
-            <img
-              src={`https://image.tmdb.org/t/p/w200${movie.posterPath}`}
-              alt={movie.title}
-              className="w-24 h-36 object-cover rounded-lg"
-            />
-            <div className="flex-1 ml-4">
-              <h3 className="text-lg font-semibold text-white">{movie.title}</h3>
+      {movies.map(movie => {
+        const isCollapsed = collapsedMovies.has(movie.id);
+        return (
+          <div
+            key={`watchlist-${movie.id}-${movie.type}`}
+            className="bg-white/10 backdrop-blur-sm rounded-lg overflow-hidden cursor-pointer transition hover:bg-white/20 border border-white/10 hover:border-white/30"
+            onClick={() => {
+              setCollapsedMovies(prev => {
+                const newSet = new Set(prev);
+                if (newSet.has(movie.id)) {
+                  newSet.delete(movie.id); // Expand
+                } else {
+                  newSet.add(movie.id); // Collapse
+                }
+                return newSet;
+              });
+            }}
+          >
+            <div className="flex items-start p-4">
+              <img
+                src={`https://image.tmdb.org/t/p/w200${movie.posterPath}`}
+                alt={movie.title}
+                className="w-24 h-36 object-cover rounded-lg"
+              />
+              <div className="flex-1 ml-4">
+                <h3 className="text-lg font-semibold text-white">{movie.title}</h3>
 
-              {/* Full description - show less when collapsed, full when expanded */}
-              <p className={`text-sm text-white/80 mt-1 ${selectedMovie === movie.id ? '' : 'line-clamp-2'}`}>
-                {movie.overview || 'No description available.'}
-              </p>
+                {/* Full description - show all by default, collapse on click */}
+                <p className={`text-sm text-white/80 mt-1 ${isCollapsed ? 'line-clamp-2' : ''}`}>
+                  {movie.overview || 'No description available.'}
+                </p>
 
-              <div className="flex items-center gap-3 mt-2">
-                <span className="text-sm text-white/60 flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
-                  {new Date(movie.releaseDate).getFullYear()}
-                </span>
-                <span className="text-sm text-white/60 flex items-center gap-1">
-                  <Star className="h-4 w-4 text-yellow-400" />
-                  {movie.voteAverage.toFixed(1)}
-                </span>
-                {movie.genres && movie.genres.length > 0 && (
-                  <span className="text-sm text-white/60">
-                    {movie.genres.slice(0, 2).join(', ')}
+                <div className="flex items-center gap-3 mt-2">
+                  <span className="text-sm text-white/60 flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    {new Date(movie.releaseDate).getFullYear()}
                   </span>
-                )}
-              </div>
-
-              {/* Show expanded details when selected */}
-              {selectedMovie === movie.id && (
-                <>
-                  {loadingDetails[movie.id] ? (
-                    <div className="mt-3 text-sm text-white/60">
-                      Loading details...
-                    </div>
-                  ) : (
-                    renderMovieDetails(movie.id)
+                  <span className="text-sm text-white/60 flex items-center gap-1">
+                    <Star className="h-4 w-4 text-yellow-400" />
+                    {movie.voteAverage.toFixed(1)}
+                  </span>
+                  {movie.genres && movie.genres.length > 0 && (
+                    <span className="text-sm text-white/60">
+                      {movie.genres.slice(0, 2).join(', ')}
+                    </span>
                   )}
-                </>
-              )}
-              {loadingProviders[movie.id] ? (
-                <div className="mt-3 text-sm text-white/60">
-                  Loading streaming info...
                 </div>
-              ) : (
-                renderStreamingProviders(movie.id)
-              )}
 
-              <div className="flex gap-2 mt-4">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleAction(movie.id, 'like');
-                  }}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-green-500/20 text-green-400 hover:bg-green-500/30 transition"
-                >
-                  <Heart className="h-4 w-4" />
-                  <span>Like</span>
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleAction(movie.id, 'pass');
-                  }}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 transition"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span>Remove</span>
-                </button>
+                {/* Show details by default, hide when collapsed */}
+                {!isCollapsed && (
+                  <>
+                    {loadingDetails[movie.id] ? (
+                      <div className="mt-3 text-sm text-white/60">
+                        Loading details...
+                      </div>
+                    ) : (
+                      renderMovieDetails(movie.id)
+                    )}
+                  </>
+                )}
+
+                {/* Always show streaming providers (unless collapsed) */}
+                {!isCollapsed && (
+                  <>
+                    {loadingProviders[movie.id] ? (
+                      <div className="mt-3 text-sm text-white/60">
+                        Loading streaming info...
+                      </div>
+                    ) : (
+                      renderStreamingProviders(movie.id)
+                    )}
+                  </>
+                )}
+
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAction(movie.id, 'like');
+                    }}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-green-500/20 text-green-400 hover:bg-green-500/30 transition"
+                  >
+                    <Heart className="h-4 w-4" />
+                    <span>Like</span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAction(movie.id, 'pass');
+                    }}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 transition"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span>Remove</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
