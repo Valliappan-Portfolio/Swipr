@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, X, Trash2, Play, ExternalLink, Users, Calendar, Clock, Star } from 'lucide-react';
 import type { Movie } from '../types';
 import { smartRecommendationEngine } from '../lib/smartRecommendations';
@@ -89,7 +89,7 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
   const [collapsedMovies, setCollapsedMovies] = useState<Set<number>>(new Set()); // Track which movies are collapsed
 
   // Auto-fetch details and streaming info for all movies on mount
-  React.useEffect(() => {
+  useEffect(() => {
     movies.forEach(movie => {
       fetchStreamingInfo(movie.id, movie.type);
       fetchMovieDetails(movie.id, movie.type);

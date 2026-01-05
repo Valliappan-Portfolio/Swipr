@@ -96,18 +96,22 @@ export function SurpriseMe({ onClose, preferences }: SurpriseMeProps) {
     try {
       let allContent: Movie[] = [];
       let page = 1;
-      
+
+      // Use English for mood picks (most curated content)
+      // If user has specific language preferences in their profile, we can use those later
+      const languages = ['en'];
+
       // First try with primary genres
       while (allContent.length < 10 && page <= 2) {
         if (preferences.contentType === 'movies' || preferences.contentType === 'both') {
-          const movieResponse = await getMovies(page, preferences.languages, mood.primaryGenres);
+          const movieResponse = await getMovies(page, languages, mood.primaryGenres);
           if (movieResponse.results) {
             allContent = [...allContent, ...movieResponse.results];
           }
         }
-        
+
         if (preferences.contentType === 'series' || preferences.contentType === 'both') {
-          const seriesResponse = await getTVSeries(page, preferences.languages, mood.primaryGenres);
+          const seriesResponse = await getTVSeries(page, languages, mood.primaryGenres);
           if (seriesResponse.results) {
             allContent = [...allContent, ...seriesResponse.results];
           }
@@ -115,19 +119,26 @@ export function SurpriseMe({ onClose, preferences }: SurpriseMeProps) {
         page++;
       }
 
+      console.log('🎭 Mood picks loaded:', {
+        mood: mood.name,
+        count: allContent.length,
+        languages,
+        genres: mood.primaryGenres
+      });
+
       // If we don't have enough content, try with fallback genres
       if (allContent.length < 10) {
         page = 1;
         while (allContent.length < 20 && page <= 2) {
           if (preferences.contentType === 'movies' || preferences.contentType === 'both') {
-            const movieResponse = await getMovies(page, preferences.languages, mood.fallbackGenres);
+            const movieResponse = await getMovies(page, languages, mood.fallbackGenres);
             if (movieResponse.results) {
               allContent = [...allContent, ...movieResponse.results];
             }
           }
           
           if (preferences.contentType === 'series' || preferences.contentType === 'both') {
-            const seriesResponse = await getTVSeries(page, preferences.languages, mood.fallbackGenres);
+            const seriesResponse = await getTVSeries(page, languages, mood.fallbackGenres);
             if (seriesResponse.results) {
               allContent = [...allContent, ...seriesResponse.results];
             }

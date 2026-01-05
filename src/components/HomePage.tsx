@@ -17,18 +17,20 @@ export function HomePage({ onStart }: HomePageProps) {
   useEffect(() => {
     const fetchTrending = async () => {
       try {
-        const [tamilMovies, englishMovies] = await Promise.all([
-          getMovies(1, ['ta'], []),
-          getMovies(1, ['en'], [])
+        // Fetch only English top-rated and popular movies for carousel
+        const [popularMovies, topRatedMovies] = await Promise.all([
+          getMovies(1, ['en'], []),
+          getMovies(2, ['en'], [])
         ]);
 
         const allMovies = [
-          ...(tamilMovies.results || []).slice(0, 10),
-          ...(englishMovies.results || []).slice(0, 10)
+          ...(popularMovies.results || []).slice(0, 10),
+          ...(topRatedMovies.results || []).slice(0, 10)
         ].sort(() => Math.random() - 0.5);
 
         // Duplicate movies for infinite scroll effect
         setTrendingMovies([...allMovies, ...allMovies]);
+        console.log('🎬 HomePage carousel loaded:', allMovies.length, 'English movies');
       } catch (error) {
         console.error('Error fetching trending:', error);
       } finally {
