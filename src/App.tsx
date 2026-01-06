@@ -526,11 +526,11 @@ function App() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Swipe Counter Badge */}
+            {/* Swipe Counter Badge - More Visible */}
             {smartRecommendationEngine.getSessionStats().totalSwipes > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30">
+              <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-gradient-to-r from-purple-500/30 to-pink-500/30 backdrop-blur-sm border-2 border-white/40 shadow-lg">
                 <Film className="h-4 w-4 text-white" />
-                <span className="text-sm font-semibold text-white">
+                <span className="text-sm font-bold text-white">
                   {smartRecommendationEngine.getSessionStats().totalSwipes}
                 </span>
               </div>

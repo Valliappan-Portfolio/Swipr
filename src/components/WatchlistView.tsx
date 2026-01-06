@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, X, Trash2, Play, ExternalLink, Users, Calendar, Clock, Star } from 'lucide-react';
+import { Heart, X, Trash2, Play, ExternalLink, Users, Calendar, Clock, Star, BookmarkPlus } from 'lucide-react';
 import type { Movie } from '../types';
 import { smartRecommendationEngine } from '../lib/smartRecommendations';
 import { getWatchProviders, getMovieDetails } from '../lib/tmdb';
@@ -316,9 +316,19 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
   };
   if (movies.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] text-white/80">
-        <p className="text-xl">No movies in your watchlist</p>
-        <p className="mt-2">Swipe up on movies to add them here!</p>
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center px-6">
+        <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center mb-6">
+          <BookmarkPlus className="h-12 w-12 text-white/60" />
+        </div>
+        <h2 className="text-2xl font-bold text-white mb-3">Your Watchlist is Empty</h2>
+        <p className="text-white/70 mb-6 max-w-md">
+          Swipe up ↑ on any movie while swiping to save it to your watchlist!
+        </p>
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 max-w-sm border border-white/20">
+          <p className="text-sm text-white/80">
+            <strong className="text-white">Pro tip:</strong> Add movies you want to watch later, and we'll show you where to stream them!
+          </p>
+        </div>
       </div>
     );
   }
