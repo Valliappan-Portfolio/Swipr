@@ -524,8 +524,18 @@ function App() {
             <Sparkles className="h-5 w-5 text-white" />
             <h1 className="text-lg font-bold text-white">Swipr</h1>
           </div>
-          
-          <div className="flex items-center justify-center">
+
+          <div className="flex items-center gap-3">
+            {/* Swipe Counter Badge */}
+            {smartRecommendationEngine.getSessionStats().totalSwipes > 0 && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30">
+                <Film className="h-4 w-4 text-white" />
+                <span className="text-sm font-semibold text-white">
+                  {smartRecommendationEngine.getSessionStats().totalSwipes}
+                </span>
+              </div>
+            )}
+
             <button
               onClick={() => setCurrentView('settings')}
               className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition flex items-center justify-center"
