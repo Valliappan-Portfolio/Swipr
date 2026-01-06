@@ -523,9 +523,6 @@ function App() {
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-white" />
             <h1 className="text-lg font-bold text-white">Swipr</h1>
-            <span className="text-xs text-white/60 bg-white/10 px-2 py-1 rounded-full">
-              Smart AI
-            </span>
           </div>
           
           <div className="flex items-center justify-center">

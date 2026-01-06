@@ -90,6 +90,17 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
 
   // Auto-fetch details and streaming info for all movies on mount
   useEffect(() => {
+    console.log('📋 Watchlist loaded:', {
+      count: movies.length,
+      movies: movies.map(m => ({
+        id: m.id,
+        title: m.title,
+        type: m.type,
+        hasOverview: !!m.overview,
+        overviewLength: m.overview?.length || 0
+      }))
+    });
+
     movies.forEach(movie => {
       fetchStreamingInfo(movie.id, movie.type);
       fetchMovieDetails(movie.id, movie.type);
@@ -125,10 +136,12 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
 
     setLoadingProviders(prev => ({ ...prev, [movieId]: true }));
     try {
+      console.log('📺 Fetching OTT providers for:', movieId, type);
       const providers = await getWatchProviders(movieId, type);
+      console.log('✅ OTT providers fetched:', { movieId, providers, regions: Object.keys(providers) });
       setStreamingInfo(prev => ({ ...prev, [movieId]: providers }));
     } catch (error) {
-      console.error('Error fetching streaming info:', error);
+      console.error('❌ Error fetching streaming info:', error);
     } finally {
       setLoadingProviders(prev => ({ ...prev, [movieId]: false }));
     }
