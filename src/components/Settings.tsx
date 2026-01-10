@@ -78,6 +78,15 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
     }));
   };
 
+  const handleLanguageToggle = (language: MovieLanguage) => {
+    setPreferences(prev => ({
+      ...prev,
+      languages: prev.languages.includes(language)
+        ? prev.languages.filter(l => l !== language)
+        : [...prev.languages, language]
+    }));
+  };
+
   const handleReset = () => {
     // Clear all local storage
     localStorage.clear();
@@ -292,6 +301,55 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
                   );
                 })}
               </div>
+            </section>
+
+            {/* Language Preferences Section */}
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <Globe className="h-5 w-5 text-blue-400" />
+                <h2 className="text-lg font-semibold text-white">Content Languages</h2>
+              </div>
+              <p className="text-white/60 text-sm mb-4">
+                Select all languages you want to see. International hits like Dark, Money Heist, and Squid Game will appear!
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {[
+                  { code: 'en' as MovieLanguage, flag: '🇺🇸', name: 'English' },
+                  { code: 'es' as MovieLanguage, flag: '🇪🇸', name: 'Spanish' },
+                  { code: 'de' as MovieLanguage, flag: '🇩🇪', name: 'German' },
+                  { code: 'ja' as MovieLanguage, flag: '🇯🇵', name: 'Japanese' },
+                  { code: 'hi' as MovieLanguage, flag: '🇮🇳', name: 'Hindi' },
+                  { code: 'ta' as MovieLanguage, flag: '🇮🇳', name: 'Tamil' },
+                  { code: 'ml' as MovieLanguage, flag: '🇮🇳', name: 'Malayalam' },
+                  { code: 'te' as MovieLanguage, flag: '🇮🇳', name: 'Telugu' }
+                ].map((lang) => {
+                  const isSelected = preferences.languages.includes(lang.code);
+                  return (
+                    <button
+                      key={lang.code}
+                      onClick={() => handleLanguageToggle(lang.code)}
+                      className={`p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
+                        isSelected
+                          ? 'bg-blue-500/20 border-blue-400'
+                          : 'bg-white/10 border-white/20 hover:bg-white/15'
+                      }`}
+                    >
+                      <div className="text-2xl">{lang.flag}</div>
+                      <div className="text-left flex-1">
+                        <div className={`text-sm font-semibold ${isSelected ? 'text-blue-200' : 'text-white/90'}`}>
+                          {lang.name}
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <CheckSquare className="h-4 w-4 text-blue-400" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-white/50 text-xs mt-3">
+                💡 Tip: Select multiple languages to discover highly-rated international content. Quality shows will be prioritized regardless of language!
+              </p>
             </section>
 
             <button

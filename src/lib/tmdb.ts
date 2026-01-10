@@ -26,8 +26,21 @@ export const LANGUAGE_NAMES: { [key: string]: string } = {
   es: 'Spanish',
   hi: 'Hindi',
   te: 'Telugu',
-  ml: 'Malayalam'
+  ml: 'Malayalam',
+  kn: 'Kannada',
+  ja: 'Japanese',
+  ko: 'Korean',
+  fr: 'French',
+  it: 'Italian'
 };
+
+// Helper function to detect anime
+// Anime = Animation genre + Japanese origin
+function detectAnime(movie: any): boolean {
+  const hasAnimation = movie.genre_ids?.includes(16); // 16 = Animation
+  const isJapanese = movie.original_language === 'ja';
+  return hasAnimation && isJapanese;
+}
 
 export async function getWatchProviders(contentId: number, contentType: 'movie' | 'tv') {
   try {
@@ -95,7 +108,9 @@ export async function getMovies(
       .filter(movie => {
         const hasValidPoster = !!movie.poster_path;
         const hasValidTitle = !!movie.title;
-        const isCorrectLanguage = languages.includes(movie.original_language);
+        // REMOVED: Hard language filter - international content is now allowed
+        // Users can still prefer their language, but won't miss international hits
+        const isCorrectLanguage = true; // Always true - language is now a preference, not a filter
         const isInYearRange = !yearRange || (
           new Date(movie.release_date).getFullYear() >= (yearRange[0] - 2) &&
           new Date(movie.release_date).getFullYear() <= (yearRange[1] + 2)
@@ -109,11 +124,13 @@ export async function getMovies(
         posterPath: movie.poster_path,
         releaseDate: movie.release_date || '',
         voteAverage: movie.vote_average || 0,
+        voteCount: movie.vote_count || 0,
         genres: (movie.genre_ids || [])
           .map(id => GENRE_NAMES[id])
           .filter(Boolean),
         type: 'movie' as const,
-        language: movie.language
+        language: movie.language,
+        isAnime: detectAnime(movie)
       }));
 
     return {
@@ -171,11 +188,13 @@ export async function getTopRatedMovies(languages: string[] = ['en']) {
         posterPath: movie.poster_path,
         releaseDate: movie.release_date || '',
         voteAverage: movie.vote_average || 0,
+        voteCount: movie.vote_count || 0,
         genres: (movie.genre_ids || [])
           .map(id => GENRE_NAMES[id])
           .filter(Boolean),
         type: 'movie' as const,
-        language: movie.language
+        language: movie.language,
+        isAnime: detectAnime(movie)
       }));
 
     console.log('🌟 Top-rated movies fetched:', {
@@ -234,11 +253,13 @@ export async function getTopRatedSeries(languages: string[] = ['en']) {
         posterPath: show.poster_path,
         releaseDate: show.first_air_date || '',
         voteAverage: show.vote_average || 0,
+        voteCount: show.vote_count || 0,
         genres: (show.genre_ids || [])
           .map(id => TV_GENRE_NAMES[id])
           .filter(Boolean),
         type: 'series' as const,
-        language: show.language
+        language: show.language,
+        isAnime: detectAnime(show)
       }));
 
     console.log('🌟 Top-rated series fetched:', {
@@ -308,7 +329,9 @@ export async function getTVSeries(
       .filter(show => {
         const hasValidPoster = !!show.poster_path;
         const hasValidTitle = !!show.name;
-        const isCorrectLanguage = languages.includes(show.original_language);
+        // REMOVED: Hard language filter - international content is now allowed
+        // Users can still prefer their language, but won't miss international hits like Dark, Money Heist, etc.
+        const isCorrectLanguage = true; // Always true - language is now a preference, not a filter
         const isInYearRange = !yearRange || (
           new Date(show.first_air_date).getFullYear() >= (yearRange[0] - 2) &&
           new Date(show.first_air_date).getFullYear() <= (yearRange[1] + 2)
@@ -322,11 +345,13 @@ export async function getTVSeries(
         posterPath: show.poster_path,
         releaseDate: show.first_air_date || '',
         voteAverage: show.vote_average || 0,
+        voteCount: show.vote_count || 0,
         genres: (show.genre_ids || [])
           .map(id => TV_GENRE_NAMES[id])
           .filter(Boolean),
         type: 'series' as const,
-        language: show.language
+        language: show.language,
+        isAnime: detectAnime(show)
       }));
 
     return {
@@ -437,3 +462,111 @@ const TV_GENRE_NAMES: { [key: number]: string } = {
   80: 'Thriller',
   10751: 'Family'
 };
+
+/**
+ * Get TMDB's collaborative filtering recommendations for a movie/series
+ * Returns movies/series that users who liked this content also liked
+ */
+export async function getTMDBRecommendations(
+  contentId: number,
+  contentType: 'movie' | 'series' = 'movie',
+  page: number = 1
+): Promise<Movie[]> {
+  try {
+    const apiType = contentType === 'series' ? 'tv' : 'movie';
+    const url = `${TMDB_BASE_URL}/${apiType}/${contentId}/recommendations?api_key=${TMDB_API_KEY}&page=${page}`;
+
+    console.log(`🎯 Fetching TMDB recommendations for ${contentType} ${contentId}...`);
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (!data.results || data.results.length === 0) {
+      console.log(`No TMDB recommendations found for ${contentType} ${contentId}`);
+      return [];
+    }
+
+    const recommendations = data.results
+      .filter((item: any) => item.poster_path && item.backdrop_path)
+      .slice(0, 20) // Limit to 20 recommendations
+      .map((item: any) => {
+        const isMovie = contentType === 'movie' || item.title; // Check if it's a movie or series
+        return {
+          id: item.id,
+          title: isMovie ? item.title : item.name,
+          overview: item.overview || '',
+          posterPath: item.poster_path,
+          releaseDate: isMovie ? (item.release_date || '') : (item.first_air_date || ''),
+          voteAverage: item.vote_average || 0,
+          voteCount: item.vote_count || 0,
+          genres: (item.genre_ids || [])
+            .map((id: number) => (isMovie ? GENRE_NAMES[id] : TV_GENRE_NAMES[id]))
+            .filter(Boolean),
+          type: isMovie ? ('movie' as const) : ('series' as const),
+          language: item.original_language,
+          popularity: item.popularity,
+          isAnime: detectAnime(item)
+        };
+      });
+
+    console.log(`✅ Found ${recommendations.length} TMDB recommendations for ${contentType} ${contentId}`);
+    return recommendations;
+  } catch (error) {
+    console.error('[TMDB] Error fetching recommendations:', error);
+    return [];
+  }
+}
+
+/**
+ * Get batch recommendations for multiple movies the user liked
+ * Aggregates recommendations from all liked content with source tracking
+ */
+export async function getBatchTMDBRecommendations(
+  likedMovies: Array<{ id: number; type: 'movie' | 'series'; title: string }>,
+  limit: number = 50
+): Promise<Movie[]> {
+  try {
+    console.log(`🎯 Fetching batch TMDB recommendations for ${likedMovies.length} liked items...`);
+
+    // Fetch recommendations for each liked movie (max 5 to avoid rate limits)
+    const recommendationPromises = likedMovies
+      .slice(0, 5)
+      .map(async (movie) => {
+        const recs = await getTMDBRecommendations(movie.id, movie.type);
+        // Tag each recommendation with the source movie
+        return recs.map(rec => ({
+          ...rec,
+          recommendationSource: {
+            type: 'tmdb' as const,
+            basedOn: movie.title
+          }
+        }));
+      });
+
+    const allRecommendations = await Promise.all(recommendationPromises);
+
+    // Flatten and deduplicate
+    const seenIds = new Set<number>();
+    const uniqueRecommendations: Movie[] = [];
+
+    for (const recommendations of allRecommendations) {
+      for (const movie of recommendations) {
+        if (!seenIds.has(movie.id)) {
+          seenIds.add(movie.id);
+          uniqueRecommendations.push(movie);
+        }
+      }
+    }
+
+    // Sort by vote average (highest rated first)
+    const sorted = uniqueRecommendations
+      .sort((a, b) => b.voteAverage - a.voteAverage)
+      .slice(0, limit);
+
+    console.log(`✅ Aggregated ${sorted.length} unique TMDB recommendations`);
+    return sorted;
+  } catch (error) {
+    console.error('[TMDB] Error fetching batch recommendations:', error);
+    return [];
+  }
+}

@@ -402,3 +402,79 @@ export async function removeFromWatchlist(userId: string, movieId: number) {
     throw error;
   }
 }
+
+// Seen Movies Tracking (prevents duplicates)
+export async function markMovieAsSeen(userId: string, movieId: number) {
+  try {
+    const { error } = await supabase
+      .from('seen_movies')
+      .insert([{
+        user_id: userId,
+        movie_id: movieId
+      }]);
+
+    // Ignore duplicate errors (movie already marked as seen)
+    if (error && !error.message.includes('unique')) {
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error marking movie as seen:', error);
+  }
+}
+
+export async function getSeenMovies(userId: string): Promise<Set<number>> {
+  try {
+    const { data, error } = await supabase
+      .from('seen_movies')
+      .select('movie_id')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+
+    return new Set(data?.map(row => row.movie_id) || []);
+  } catch (error) {
+    console.error('Error getting seen movies:', error);
+    return new Set();
+  }
+}
+
+export async function removeSeenMovie(userId: string, movieId: number) {
+  try {
+    const { error} = await supabase
+      .from('seen_movies')
+      .delete()
+      .eq('user_id', userId)
+      .eq('movie_id', movieId);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error removing seen movie:', error);
+  }
+}
+
+/**
+ * Get user's liked movies for TMDB recommendations
+ * Returns the most recent liked movies with their details
+ */
+export async function getUserLikedMovies(userId: string, limit: number = 10) {
+  try {
+    const { data, error } = await supabase
+      .from('anonymous_actions')
+      .select('movie_id, movie_title, movie_type')
+      .eq('user_id', userId)
+      .eq('action', 'like')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+
+    return (data || []).map(item => ({
+      id: item.movie_id,
+      type: item.movie_type as 'movie' | 'series',
+      title: item.movie_title
+    }));
+  } catch (error) {
+    console.error('Error getting liked movies:', error);
+    return [];
+  }
+}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Film, Settings as SettingsIcon, Share2, ListVideo, Sparkles, BarChart3 } from 'lucide-react';
+import { Film, Settings as SettingsIcon, Share2, ListVideo, BarChart3, Brain } from 'lucide-react';
 import { MovieCard } from './components/MovieCard';
 import { HomePage } from './components/HomePage';
 import { Auth } from './components/Auth';
@@ -10,10 +10,14 @@ import { SurpriseMe } from './components/SurpriseMe';
 import { UserStats } from './components/UserStats';
 import { UndoButton } from './components/UndoButton';
 import { ConnectionTest } from './components/ConnectionTest';
+import { SwipeLogo } from './components/SwipeLogo';
+import { AlgorithmDemo } from './components/AlgorithmDemo';
 import { getMovies, getTVSeries, getTopRatedMovies, getTopRatedSeries } from './lib/tmdb';
 import { intelligentRecommendationEngine } from './lib/intelligentRecommendations';
 import { smartRecommendationEngine } from './lib/smartRecommendations';
-import { saveUserPreferences, saveMovieAction, getStoredPreferenceId, storePreferenceId, getStoredUserId, storeUserId, getStoredUsername, storeUsername, getStoredEmail, storeEmail, getUserPreferences, addToWatchlist as addToSupabaseWatchlist, getWatchlist as getSupabaseWatchlist, removeFromWatchlist } from './lib/supabase';
+import { saveUserPreferences, saveMovieAction, getStoredPreferenceId, storePreferenceId, getStoredUserId, storeUserId, getStoredUsername, storeUsername, getStoredEmail, storeEmail, getUserPreferences, addToWatchlist as addToSupabaseWatchlist, getWatchlist as getSupabaseWatchlist, removeFromWatchlist, markMovieAsSeen, getSeenMovies, removeSeenMovie, getUserLikedMovies } from './lib/supabase';
+import { batchGetStreamingAvailability } from './lib/ottIntegration';
+import { getBatchTMDBRecommendations } from './lib/tmdb';
 import type { Movie, MovieActionType, UserPreferences, ViewType } from './types';
 
 const gradients = [
@@ -50,6 +54,7 @@ function App() {
   const [useIntelligentRecommendations, setUseIntelligentRecommendations] = useState(true);
   const [showConnectionTest, setShowConnectionTest] = useState(false);
   const [showUserStats, setShowUserStats] = useState(false);
+  const [showAlgorithmDemo, setShowAlgorithmDemo] = useState(false);
   const [undoInProgress, setUndoInProgress] = useState(false);
   const [lastUndoMovie, setLastUndoMovie] = useState<Movie | null>(null);
   const [topRatedMovies, setTopRatedMovies] = useState<Movie[]>([]);
@@ -57,11 +62,6 @@ function App() {
 
   useEffect(() => {
     const initializeApp = async () => {
-      const savedSeenMovies = localStorage.getItem('seenMovies');
-      if (savedSeenMovies) {
-        setSeenMovies(new Set(JSON.parse(savedSeenMovies)));
-      }
-
       const storedId = getStoredPreferenceId();
       if (storedId) {
         setPreferenceId(storedId);
@@ -88,6 +88,11 @@ function App() {
           storePreferenceId(existingData.preferenceId);
           console.log('✅ Loaded returning user preferences:', { name: existingData.name, preferenceId: existingData.preferenceId });
         }
+
+        // Load seen movies from Supabase (instead of localStorage)
+        const seenMoviesFromDB = await getSeenMovies(storedUserId);
+        setSeenMovies(seenMoviesFromDB);
+        console.log('✅ Loaded seen movies from Supabase:', seenMoviesFromDB.size, 'movies');
 
         // Load watchlist from Supabase
         const watchlist = await getSupabaseWatchlist(storedUserId);
@@ -198,13 +203,66 @@ function App() {
         return await fetchContent(page + 1, false); // Disable personalization for retry
       }
 
+      // 🎯 TMDB Collaborative Filtering: Mix in recommendations from similar users
+      // Only fetch if user has liked 3+ movies and on first page
+      if (userId && page === 1) {
+        try {
+          const userLikes = await getUserLikedMovies(userId, 5);
+
+          if (userLikes.length >= 3) {
+            console.log(`🎯 User has ${userLikes.length} likes, fetching TMDB recommendations...`);
+
+            const tmdbRecs = await getBatchTMDBRecommendations(userLikes, 15);
+
+            if (tmdbRecs.length > 0) {
+              // Filter out already seen/existing movies
+              const filteredRecs = tmdbRecs.filter(rec =>
+                !seenMovies.has(rec.id) &&
+                !existingIds.has(rec.id) &&
+                !uniqueContent.some(m => m.id === rec.id)
+              );
+
+              // Mix in 30% TMDB recommendations
+              const recsToAdd = Math.min(
+                filteredRecs.length,
+                Math.ceil(uniqueContent.length * 0.3)
+              );
+
+              uniqueContent.push(...filteredRecs.slice(0, recsToAdd));
+
+              console.log(`✅ Added ${recsToAdd} TMDB recommendations (30% of ${uniqueContent.length} total)`);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching TMDB recommendations:', error);
+          // Continue without TMDB recs if there's an error
+        }
+      }
+
       // Shuffle content to add variety
       const shuffledContent = uniqueContent.sort(() => Math.random() - 0.5);
 
+      // Fetch streaming availability for the new movies (in background)
+      if (shuffledContent.length > 0) {
+        const movieIds = shuffledContent.map(m => m.id);
+        batchGetStreamingAvailability(movieIds).then(providersMap => {
+          setMovies(prev => prev.map(movie => {
+            const providers = providersMap.get(movie.id);
+            if (providers !== undefined) {
+              return { ...movie, watchProviders: providers };
+            }
+            return movie;
+          }));
+        }).catch(error => {
+          console.error('Error fetching streaming availability:', error);
+          // Don't fail the whole fetch if OTT data fails
+        });
+      }
+
       setMovies(prev => [...prev, ...shuffledContent]);
-      
+
       console.log(`📈 Total movies loaded: ${movies.length + shuffledContent.length}, New content: ${shuffledContent.length}`);
-      
+
       return shuffledContent.length > 0;
     } catch (error) {
       console.error('Error fetching content:', error);
@@ -284,10 +342,14 @@ function App() {
       watchlistSize: stats.watchlistSize
     });
     
+    // Mark movie as seen in Supabase (if user is logged in)
+    if (userId) {
+      await markMovieAsSeen(userId, currentMovie.id);
+    }
+
     setSeenMovies(prev => {
       const next = new Set(prev);
       next.add(currentMovie.id);
-      localStorage.setItem('seenMovies', JSON.stringify(Array.from(next)));
       return next;
     });
     
@@ -359,11 +421,14 @@ function App() {
       // Move back one movie
       setCurrentIndex(prev => prev - 1);
 
-      // Remove from seen movies
+      // Remove from seen movies in Supabase
+      if (userId) {
+        await removeSeenMovie(userId, undoMovie.id);
+      }
+
       setSeenMovies(prev => {
         const next = new Set(prev);
         next.delete(undoMovie.id);
-        localStorage.setItem('seenMovies', JSON.stringify(Array.from(next)));
         return next;
       });
 
@@ -521,7 +586,7 @@ function App() {
       <header className="app-header fixed top-0 left-0 right-0 z-30">
         <div className="max-w-screen-xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-white" />
+            <SwipeLogo className="h-7 w-7" />
             <h1 className="text-lg font-bold text-white">Swipr</h1>
           </div>
 
@@ -535,6 +600,14 @@ function App() {
                 </span>
               </div>
             )}
+
+            <button
+              onClick={() => setShowAlgorithmDemo(true)}
+              className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition flex items-center justify-center"
+              title="How It Works"
+            >
+              <Brain className="h-5 w-5 text-white" />
+            </button>
 
             <button
               onClick={() => setCurrentView('settings')}
@@ -649,7 +722,7 @@ function App() {
                 : 'text-white/60 hover:text-white hover:bg-white/10'
             }`}
           >
-            <Sparkles className="h-5 w-5" />
+            <BarChart3 className="h-5 w-5" />
             <span className="text-sm">Moods</span>
           </button>
         </div>
@@ -664,6 +737,13 @@ function App() {
 
       {showUserStats && (
         <UserStats onClose={() => setShowUserStats(false)} />
+      )}
+
+      {showAlgorithmDemo && (
+        <AlgorithmDemo
+          onClose={() => setShowAlgorithmDemo(false)}
+          sampleMovies={movies.slice(currentIndex, currentIndex + 20)}
+        />
       )}
 
       {showConnectionTest && (

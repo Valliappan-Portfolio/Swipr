@@ -3,13 +3,14 @@ interface UserPreferences {
   dislikedGenres: string[];
   preferredDecades: number[];
   likedActors: string[];
+  likedDirectors: string[];
   preferredRatings: number[];
   averageRatingPreference: number;
+  popularityPreference: 'mainstream' | 'balanced' | 'indie' | null;
 }
 
 interface UserSession {
   preferences: UserPreferences;
-  watchlist: Movie[];
   swipeHistory: SwipeAction[];
   sessionStats: {
     totalSwipes: number;
@@ -28,6 +29,8 @@ interface SwipeAction {
     genres: string[];
     year: number;
     rating: number;
+    popularity?: number;
+    director?: string;
     actors?: string[];
   };
 }
@@ -59,8 +62,7 @@ class SmartRecommendationEngine {
         const session = JSON.parse(stored);
         console.log('📱 Loaded user session:', {
           totalSwipes: session.sessionStats?.totalSwipes || 0,
-          likedGenres: session.preferences?.likedGenres?.length || 0,
-          watchlistSize: session.watchlist?.length || 0
+          likedGenres: session.preferences?.likedGenres?.length || 0
         });
         return session;
       }
@@ -75,10 +77,11 @@ class SmartRecommendationEngine {
         dislikedGenres: [],
         preferredDecades: [],
         likedActors: [],
+        likedDirectors: [],
         preferredRatings: [],
-        averageRatingPreference: 7.0
+        averageRatingPreference: 7.0,
+        popularityPreference: null
       },
-      watchlist: [],
       swipeHistory: [],
       sessionStats: {
         totalSwipes: 0,
@@ -95,8 +98,7 @@ class SmartRecommendationEngine {
       this.userSession.lastUpdated = new Date().toISOString();
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.userSession));
       console.log('💾 Session saved:', {
-        totalSwipes: this.userSession.sessionStats.totalSwipes,
-        watchlistSize: this.userSession.watchlist.length
+        totalSwipes: this.userSession.sessionStats.totalSwipes
       });
     } catch (error) {
       console.error('Error saving user session:', error);
@@ -106,10 +108,23 @@ class SmartRecommendationEngine {
   scoreMovie(movie: Movie): number {
     const prefs = this.userSession.preferences;
     let score = 0.5; // Base score
-    let scoreBreakdown = { base: 0.5, genre: 0, year: 0, rating: 0 };
+    let scoreBreakdown = { base: 0.5, genre: 0, year: 0, rating: 0, director: 0, popularity: 0, anime: 0 };
+
+    // Anime penalty (check BEFORE genre scoring)
+    if (movie.isAnime && prefs.dislikedGenres.includes('Animation')) {
+      const animePenalty = -0.8; // Heavy penalty for anime if user dislikes animation
+      score += animePenalty;
+      scoreBreakdown.anime = animePenalty;
+      console.log(`🚫 Anime detected and penalized: "${movie.title}" (${animePenalty})`);
+    }
 
     // Genre preferences (major factor - 40% weight)
     movie.genres.forEach(genre => {
+      // Skip Animation genre if it's anime (already penalized above)
+      if (genre === 'Animation' && movie.isAnime && prefs.dislikedGenres.includes('Animation')) {
+        return; // Already penalized as anime
+      }
+
       if (prefs.likedGenres.includes(genre)) {
         const boost = 0.4;
         score += boost;
@@ -131,6 +146,13 @@ class SmartRecommendationEngine {
       scoreBreakdown.year += boost;
     }
 
+    // Director preferences (15% weight) - NEW!
+    if (movie.director && prefs.likedDirectors.includes(movie.director)) {
+      const boost = 0.3;
+      score += boost;
+      scoreBreakdown.director += boost;
+    }
+
     // Rating preferences (10% weight)
     if (movie.voteAverage >= prefs.averageRatingPreference) {
       const boost = 0.1;
@@ -145,15 +167,32 @@ class SmartRecommendationEngine {
       scoreBreakdown.rating += boost;
     }
 
-    // Slight penalty for very old movies unless user likes them
-    if (movieYear < 2000 && !prefs.preferredDecades.some(d => d < 2000)) {
-      const penalty = -0.1;
-      score += penalty;
-      scoreBreakdown.year += penalty;
+    // CRITICAL: Quality content boost - ensures top-tier shows always appear
+    // This helps surface critically acclaimed shows like Dark, Severance, etc.
+    if (movie.voteAverage >= 8.0 && movie.voteAverage < 10) {
+      const voteCount = (movie as any).vote_count || 0;
+      if (voteCount >= 1000) {
+        const qualityBoost = 0.25; // Significant boost for proven quality
+        score += qualityBoost;
+        scoreBreakdown.rating += qualityBoost;
+      }
+    }
+
+    // Popularity preferences (10% weight) - NEW!
+    if (prefs.popularityPreference && movie.popularity) {
+      if (prefs.popularityPreference === 'mainstream' && movie.popularity > 50) {
+        const boost = 0.15;
+        score += boost;
+        scoreBreakdown.popularity += boost;
+      } else if (prefs.popularityPreference === 'indie' && movie.popularity < 30) {
+        const boost = 0.15;
+        score += boost;
+        scoreBreakdown.popularity += boost;
+      }
     }
 
     const finalScore = Math.max(0, Math.min(1, score));
-    
+
     // Log detailed scoring for first few movies or when score is interesting
     if (Math.random() < 0.1 || finalScore > 0.8 || finalScore < 0.3) {
       console.log('🎯 Movie scoring:', {
@@ -161,11 +200,13 @@ class SmartRecommendationEngine {
         genres: movie.genres,
         year: movieYear,
         rating: movie.voteAverage,
+        director: movie.director,
+        popularity: movie.popularity,
         scoreBreakdown,
         finalScore: finalScore.toFixed(3)
       });
     }
-    
+
     return finalScore;
   }
 
@@ -188,7 +229,9 @@ class SmartRecommendationEngine {
       movieData: {
         genres: movie.genres,
         year: movieYear,
-        rating: movie.voteAverage
+        rating: movie.voteAverage,
+        popularity: movie.popularity,
+        director: movie.director
       }
     };
 
@@ -218,17 +261,12 @@ class SmartRecommendationEngine {
       preferredDecades: this.userSession.preferences.preferredDecades,
       averageRating: this.userSession.preferences.averageRatingPreference.toFixed(1)
     });
-    // Add to watchlist if unwatched
-    if (action === 'unwatched') {
-      this.addToWatchlist(movie);
-    }
 
     this.saveUserSession();
 
     console.log('💾 Session saved:', {
       totalSwipes: this.userSession.sessionStats.totalSwipes,
       likesCount: this.userSession.sessionStats.likesCount,
-      watchlistSize: this.userSession.watchlist.length,
       newMovieScore: this.scoreMovie(movie).toFixed(3)
     });
   }
@@ -254,6 +292,11 @@ class SmartRecommendationEngine {
         prefs.preferredDecades.push(movieDecade);
       }
 
+      // Add director to liked list (NEW!)
+      if (movie.director && !prefs.likedDirectors.includes(movie.director)) {
+        prefs.likedDirectors.push(movie.director);
+      }
+
       // Update average rating preference
       const likedMovies = this.userSession.swipeHistory.filter(s => s.action === 'like');
       if (likedMovies.length > 0) {
@@ -261,14 +304,19 @@ class SmartRecommendationEngine {
         prefs.averageRatingPreference = avgRating;
       }
 
+      // Learn popularity preference (NEW!)
+      this.updatePopularityPreference();
+
     } else if (action === 'pass') {
-      // Add genres to disliked list (but only if consistently disliked)
+      // Add genres to disliked list (more aggressive - 2+ passes out of last 3)
       movie.genres.forEach(genre => {
         const recentPasses = this.userSession.swipeHistory
           .filter(s => s.action === 'pass' && s.movieData.genres.includes(genre))
-          .slice(0, 3); // Last 3 passes with this genre
+          .slice(0, 5); // Last 5 passes with this genre
 
+        // Mark as disliked if 2+ passes out of last 3 swipes with this genre
         if (recentPasses.length >= 2 && !prefs.dislikedGenres.includes(genre)) {
+          console.log(`🚫 Genre "${genre}" marked as disliked after ${recentPasses.length} passes`);
           prefs.dislikedGenres.push(genre);
           // Remove from liked if present
           const likedIndex = prefs.likedGenres.indexOf(genre);
@@ -289,30 +337,31 @@ class SmartRecommendationEngine {
     if (prefs.preferredDecades.length > 6) {
       prefs.preferredDecades = prefs.preferredDecades.slice(0, 6);
     }
-  }
-
-  addToWatchlist(movie: Movie): void {
-    // Check if already in watchlist
-    if (!this.userSession.watchlist.find(m => m.id === movie.id)) {
-      this.userSession.watchlist.unshift(movie);
-      console.log('📚 Added to watchlist:', movie.title);
+    if (prefs.likedDirectors.length > 10) {
+      prefs.likedDirectors = prefs.likedDirectors.slice(0, 10);
     }
   }
 
-  removeFromWatchlist(movieId: number): void {
-    this.userSession.watchlist = this.userSession.watchlist.filter(m => m.id !== movieId);
-    this.saveUserSession();
-  }
+  private updatePopularityPreference(): void {
+    const likedMovies = this.userSession.swipeHistory.filter(s => s.action === 'like' && s.movieData.popularity);
 
-  getWatchlist(): Movie[] {
-    return this.userSession.watchlist;
+    if (likedMovies.length < 5) return; // Need at least 5 liked movies
+
+    const avgPopularity = likedMovies.reduce((sum, s) => sum + (s.movieData.popularity || 0), 0) / likedMovies.length;
+
+    if (avgPopularity > 60) {
+      this.userSession.preferences.popularityPreference = 'mainstream';
+    } else if (avgPopularity < 25) {
+      this.userSession.preferences.popularityPreference = 'indie';
+    } else {
+      this.userSession.preferences.popularityPreference = 'balanced';
+    }
   }
 
   getSessionStats() {
     return {
       ...this.userSession.sessionStats,
       preferences: this.userSession.preferences,
-      watchlistSize: this.userSession.watchlist.length,
       hasHistory: this.userSession.swipeHistory.length > 0
     };
   }
@@ -343,8 +392,6 @@ class SmartRecommendationEngine {
       this.userSession.sessionStats.dislikesCount--;
     } else if (lastSwipe.action === 'unwatched') {
       this.userSession.sessionStats.unwatchedCount--;
-      // Remove from watchlist
-      this.removeFromWatchlist(lastSwipe.movieId);
     }
 
     this.saveUserSession();

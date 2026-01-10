@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, PanInfo, useMotionValue, useTransform, useAnimation } from 'framer-motion';
-import { Heart, X, BookmarkPlus, Star, Clock, Globe } from 'lucide-react';
+import { Heart, X, BookmarkPlus, Star, Clock, Globe, Tv } from 'lucide-react';
 import type { Movie, MovieActionType } from '../types';
 import { LANGUAGE_NAMES } from '../lib/tmdb';
 import { getPosterUrl } from '../lib/tmdb';
+import { getProviderInfo, hasStreamingAvailability } from '../lib/ottIntegration';
 
 interface MovieCardProps {
   movie: Movie;
@@ -23,7 +24,7 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
   const [isHovered, setIsHovered] = useState(false);
   const [posterLoaded, setPosterLoaded] = useState(false);
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
+  const [showDetails, setShowDetails] = useState(true); // Show details by default
   const detailsTimeoutRef = useRef<number>();
   const isDraggingRef = useRef(false);
   
@@ -285,12 +286,24 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
           </div>
         )}
 
-        {/* Movie Details Overlay */}
+        {/* Recommendation Source Badge - Clean, minimal, mobile-friendly */}
+        {movie.recommendationSource?.type === 'tmdb' && movie.recommendationSource.basedOn && (
+          <div className="absolute top-3 left-3 right-3 z-10 pointer-events-none">
+            <div className="bg-gradient-to-r from-purple-500/90 to-pink-500/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-lg">
+              <p className="text-xs font-semibold text-white flex items-center gap-1">
+                <span className="text-sm">✨</span>
+                <span className="truncate">Because you liked "{movie.recommendationSource.basedOn}"</span>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Details Overlay - Clean on/off toggle, shows on click only */}
         {showDetails && (
-          <div className="absolute inset-0 flex flex-col justify-end z-10">
+          <div className="absolute inset-0 flex flex-col justify-end z-20">
             {/* Semi-transparent gradient background - clickable to close */}
             <div
-              className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent"
+              className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowDetails(false);
@@ -343,6 +356,44 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
                 ))}
               </div>
 
+              {/* OTT Streaming Availability */}
+              {movie.watchProviders && hasStreamingAvailability(movie.watchProviders) && (
+                <div className="flex items-start gap-2 pt-2">
+                  <Tv className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-xs text-white/70 mb-1">Available on:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {movie.watchProviders.flatrate?.slice(0, 4).map(provider => {
+                        const info = getProviderInfo(provider.provider_id);
+                        return (
+                          <span
+                            key={provider.provider_id}
+                            className="text-xs px-2 py-1 bg-blue-500/20 text-blue-300 rounded flex items-center gap-1"
+                            title={info.name}
+                          >
+                            <span>{info.icon}</span>
+                            <span>{info.name}</span>
+                          </span>
+                        );
+                      })}
+                      {movie.watchProviders.flatrate && movie.watchProviders.flatrate.length > 4 && (
+                        <span className="text-xs px-2 py-1 bg-white/10 text-white/70 rounded">
+                          +{movie.watchProviders.flatrate.length - 4} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* No Streaming Availability */}
+              {movie.watchProviders && !hasStreamingAvailability(movie.watchProviders) && (
+                <div className="flex items-center gap-2 pt-2">
+                  <Tv className="h-4 w-4 text-white/50" />
+                  <p className="text-xs text-white/50">Not available for streaming</p>
+                </div>
+              )}
+
               <div className="flex justify-between pt-4">
                 <button
                   onClick={(e) => {
@@ -354,7 +405,7 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
                 >
                   <X className="h-6 w-6 text-white" />
                 </button>
-                
+
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -365,7 +416,7 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
                 >
                   <BookmarkPlus className="h-6 w-6 text-white" />
                 </button>
-                
+
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
