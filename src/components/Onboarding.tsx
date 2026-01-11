@@ -23,8 +23,8 @@ export function Onboarding({ onComplete, initialName = '' }: OnboardingProps) {
   const [step, setStep] = useState(0);
   const [vibes, setVibes] = useState<Vibe[]>([]);
   const [timeCommitment, setTimeCommitment] = useState<TimeCommitment | null>(null);
-  // English + German by default (cold start and regular)
-  const [languages] = useState<MovieLanguage[]>(['en', 'de']);
+  // English, German, Korean, Spanish by default (popular international content)
+  const [languages] = useState<MovieLanguage[]>(['en', 'de', 'ko', 'es']);
   const [era, setEra] = useState<'modern' | 'classic' | 'any'>('modern');
 
   const handleComplete = () => {

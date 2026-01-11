@@ -136,8 +136,10 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
 
     setLoadingProviders(prev => ({ ...prev, [movieId]: true }));
     try {
-      console.log('📺 Fetching OTT providers for:', movieId, type);
-      const providers = await getWatchProviders(movieId, type);
+      // Convert 'series' to 'tv' for TMDB API compatibility
+      const contentType = type === 'series' ? 'tv' : 'movie';
+      console.log('📺 Fetching OTT providers for:', movieId, contentType);
+      const providers = await getWatchProviders(movieId, contentType);
       console.log('✅ OTT providers fetched:', { movieId, providers, regions: Object.keys(providers) });
       setStreamingInfo(prev => ({ ...prev, [movieId]: providers }));
     } catch (error) {

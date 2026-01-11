@@ -55,12 +55,18 @@ export async function getWatchProviders(contentId: number, contentType: 'movie' 
 }
 
 export async function getMovies(
-  page = 1, 
-  languages: string[] = ['en'], 
+  page = 1,
+  languages: string[] = ['en'],
   userGenres: string[] = [],
-  yearRange?: [number, number]
+  yearRange?: [number, number],
+  isColdStart: boolean = false
 ) {
   try {
+    // Cold start: Super strict filters for first 10 swipes
+    // Post cold start: Relaxed filters
+    const voteCountThreshold = isColdStart ? '500' : '200';
+    const voteAverageThreshold = isColdStart ? '8.0' : '7.0';
+
     const moviePromises = languages.map(async (language) => {
       const url = new URL(`${TMDB_BASE_URL}/discover/movie`);
       url.searchParams.append('api_key', TMDB_API_KEY);
@@ -69,8 +75,8 @@ export async function getMovies(
       url.searchParams.append('include_adult', 'false');
       url.searchParams.append('page', page.toString());
       url.searchParams.append('with_original_language', language);
-      url.searchParams.append('vote_count.gte', '200'); // Increased to 200 for better quality content
-      url.searchParams.append('vote_average.gte', '7.0'); // Only show well-rated content
+      url.searchParams.append('vote_count.gte', voteCountThreshold); // 500 for cold start, 200 after
+      url.searchParams.append('vote_average.gte', voteAverageThreshold); // 8.0 for cold start, 7.0 after
 
       if (yearRange) {
         // Add 2-year tolerance as requested
@@ -279,9 +285,15 @@ export async function getTVSeries(
   page = 1,
   languages: string[] = ['en'],
   userGenres: string[] = [],
-  yearRange?: [number, number]
+  yearRange?: [number, number],
+  isColdStart: boolean = false
 ) {
   try {
+    // Cold start: Super strict filters for first 10 swipes
+    // Post cold start: Relaxed filters
+    const voteCountThreshold = isColdStart ? '500' : '200';
+    const voteAverageThreshold = isColdStart ? '8.0' : '7.0';
+
     const seriesPromises = languages.map(async (language) => {
       const url = new URL(`${TMDB_BASE_URL}/discover/tv`);
       url.searchParams.append('api_key', TMDB_API_KEY);
@@ -290,8 +302,8 @@ export async function getTVSeries(
       url.searchParams.append('include_adult', 'false');
       url.searchParams.append('page', page.toString());
       url.searchParams.append('with_original_language', language);
-      url.searchParams.append('vote_count.gte', '200'); // Increased to 200 for better quality content
-      url.searchParams.append('vote_average.gte', '7.0'); // Only show well-rated content
+      url.searchParams.append('vote_count.gte', voteCountThreshold); // 500 for cold start, 200 after
+      url.searchParams.append('vote_average.gte', voteAverageThreshold); // 8.0 for cold start, 7.0 after
 
       if (yearRange) {
         // Add 2-year tolerance as requested

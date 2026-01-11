@@ -144,24 +144,36 @@ function App() {
 
       // If no personalized content or fallback needed, use regular fetching
       if (allContent.length === 0) {
+        // Check if user is in cold start phase (first 10 swipes)
+        const totalSwipes = smartRecommendationEngine.getSessionStats().totalSwipes;
+        const isColdStart = totalSwipes < 10;
+
+        if (isColdStart) {
+          console.log(`❄️ Cold start mode: ${totalSwipes}/10 swipes - Using stricter filters (vote_count: 500+, rating: 8.0+)`);
+        } else {
+          console.log(`🎯 Post cold start: ${totalSwipes} swipes - Using relaxed filters (vote_count: 200+, rating: 7.0+)`);
+        }
+
         if (preferences.contentType === 'movies' || preferences.contentType === 'both') {
           const movieResponse = await getMovies(
-            page, 
-            preferences.languages, 
+            page,
+            preferences.languages,
             preferences.genres,
-            preferences.yearRange
+            preferences.yearRange,
+            isColdStart
           );
           if (movieResponse.results) {
             allContent = [...allContent, ...movieResponse.results];
           }
         }
-        
+
         if (preferences.contentType === 'series' || preferences.contentType === 'both') {
           const seriesResponse = await getTVSeries(
             page,
             preferences.languages,
             preferences.genres,
-            preferences.yearRange
+            preferences.yearRange,
+            isColdStart
           );
           if (seriesResponse.results) {
             allContent = [...allContent, ...seriesResponse.results];
@@ -295,24 +307,24 @@ function App() {
       const { contentType } = userProfile.preferences;
       let topRated: Movie[] = [];
 
-      // Load top-rated English + German content for cold start
-      const coldStartLanguages = ['en', 'de'];
+      // Load top-rated content in popular languages for cold start
+      const coldStartLanguages = ['en', 'de', 'ko', 'es']; // English, German, Korean, Spanish
 
       // Load top-rated content based on user's preference
       if (contentType === 'movies') {
         const topMovies = await getTopRatedMovies(coldStartLanguages);
         topRated = topMovies;
-        console.log('🌟 Top-rated English + German MOVIES loaded for cold start:', topMovies.length);
+        console.log('🌟 Top-rated MOVIES loaded for cold start (en/de/ko/es):', topMovies.length);
       } else if (contentType === 'series') {
         const topSeries = await getTopRatedSeries(coldStartLanguages);
         topRated = topSeries;
-        console.log('🌟 Top-rated English + German SERIES loaded for cold start:', topSeries.length);
+        console.log('🌟 Top-rated SERIES loaded for cold start (en/de/ko/es):', topSeries.length);
       } else {
         // 'both' - mix of movies and series
         const topMovies = await getTopRatedMovies(coldStartLanguages);
         const topSeries = await getTopRatedSeries(coldStartLanguages);
         topRated = [...topMovies.slice(0, 5), ...topSeries.slice(0, 5)].sort(() => Math.random() - 0.5);
-        console.log('🌟 Top-rated English + German MOVIES & SERIES loaded for cold start:', topRated.length);
+        console.log('🌟 Top-rated MOVIES & SERIES loaded for cold start (en/de/ko/es):', topRated.length);
       }
 
       setTopRatedMovies(topRated);
