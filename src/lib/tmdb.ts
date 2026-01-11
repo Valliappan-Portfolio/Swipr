@@ -69,7 +69,8 @@ export async function getMovies(
       url.searchParams.append('include_adult', 'false');
       url.searchParams.append('page', page.toString());
       url.searchParams.append('with_original_language', language);
-      url.searchParams.append('vote_count.gte', '50'); // Reduced from 100 to 50 for more content
+      url.searchParams.append('vote_count.gte', '200'); // Increased to 200 for better quality content
+      url.searchParams.append('vote_average.gte', '7.0'); // Only show well-rated content
 
       if (yearRange) {
         // Add 2-year tolerance as requested
@@ -289,7 +290,9 @@ export async function getTVSeries(
       url.searchParams.append('include_adult', 'false');
       url.searchParams.append('page', page.toString());
       url.searchParams.append('with_original_language', language);
-      
+      url.searchParams.append('vote_count.gte', '200'); // Increased to 200 for better quality content
+      url.searchParams.append('vote_average.gte', '7.0'); // Only show well-rated content
+
       if (yearRange) {
         // Add 2-year tolerance as requested
         const startYear = Math.max(1900, yearRange[0] - 2);

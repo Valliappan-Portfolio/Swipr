@@ -211,10 +211,14 @@ function App() {
 
           if (userLikes.length >= 3) {
             console.log(`🎯 User has ${userLikes.length} likes, fetching TMDB recommendations...`);
+            console.log(`📋 User's liked movies:`, userLikes.map(l => l.title));
 
             const tmdbRecs = await getBatchTMDBRecommendations(userLikes, 15);
 
             if (tmdbRecs.length > 0) {
+              console.log(`📦 TMDB returned ${tmdbRecs.length} recommendations`);
+              console.log(`🎬 Sample TMDB rec:`, tmdbRecs[0]?.title, tmdbRecs[0]?.recommendationSource);
+
               // Filter out already seen/existing movies
               const filteredRecs = tmdbRecs.filter(rec =>
                 !seenMovies.has(rec.id) &&
@@ -231,7 +235,12 @@ function App() {
               uniqueContent.push(...filteredRecs.slice(0, recsToAdd));
 
               console.log(`✅ Added ${recsToAdd} TMDB recommendations (30% of ${uniqueContent.length} total)`);
+              console.log(`🏷️ Badge should show for: ${filteredRecs.slice(0, recsToAdd).map(m => m.title).join(', ')}`);
+            } else {
+              console.log(`⚠️ No TMDB recommendations returned`);
             }
+          } else {
+            console.log(`⚠️ User has only ${userLikes.length} likes (need 3+)`);
           }
         } catch (error) {
           console.error('Error fetching TMDB recommendations:', error);
@@ -286,21 +295,24 @@ function App() {
       const { contentType } = userProfile.preferences;
       let topRated: Movie[] = [];
 
+      // Load top-rated English + German content for cold start
+      const coldStartLanguages = ['en', 'de'];
+
       // Load top-rated content based on user's preference
       if (contentType === 'movies') {
-        const topMovies = await getTopRatedMovies(['en']);
+        const topMovies = await getTopRatedMovies(coldStartLanguages);
         topRated = topMovies;
-        console.log('🌟 Top-rated English MOVIES loaded for cold start:', topMovies.length);
+        console.log('🌟 Top-rated English + German MOVIES loaded for cold start:', topMovies.length);
       } else if (contentType === 'series') {
-        const topSeries = await getTopRatedSeries(['en']);
+        const topSeries = await getTopRatedSeries(coldStartLanguages);
         topRated = topSeries;
-        console.log('🌟 Top-rated English SERIES loaded for cold start:', topSeries.length);
+        console.log('🌟 Top-rated English + German SERIES loaded for cold start:', topSeries.length);
       } else {
         // 'both' - mix of movies and series
-        const topMovies = await getTopRatedMovies(['en']);
-        const topSeries = await getTopRatedSeries(['en']);
+        const topMovies = await getTopRatedMovies(coldStartLanguages);
+        const topSeries = await getTopRatedSeries(coldStartLanguages);
         topRated = [...topMovies.slice(0, 5), ...topSeries.slice(0, 5)].sort(() => Math.random() - 0.5);
-        console.log('🌟 Top-rated English MOVIES & SERIES loaded for cold start:', topRated.length);
+        console.log('🌟 Top-rated English + German MOVIES & SERIES loaded for cold start:', topRated.length);
       }
 
       setTopRatedMovies(topRated);

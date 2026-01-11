@@ -27,7 +27,7 @@ export function UserStats({ onClose }: UserStatsProps) {
 
   const getWatchTimeEstimate = () => {
     // Assume average movie is 110 minutes
-    const estimatedMinutes = stats.watchlistSize * 110;
+    const estimatedMinutes = stats.unwatchedCount * 110;
     const hours = Math.floor(estimatedMinutes / 60);
     return hours;
   };
@@ -68,7 +68,7 @@ export function UserStats({ onClose }: UserStatsProps) {
           <div className="bg-blue-500/20 rounded-lg p-4 text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
               <BookmarkPlus className="h-4 w-4 text-blue-400" />
-              <div className="text-2xl font-bold text-blue-400">{stats.watchlistSize}</div>
+              <div className="text-2xl font-bold text-blue-400">{stats.unwatchedCount}</div>
             </div>
             <div className="text-sm text-white/60">Watchlist</div>
           </div>

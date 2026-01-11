@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, PanInfo, useMotionValue, useTransform, useAnimation } from 'framer-motion';
-import { Heart, X, BookmarkPlus, Star, Clock, Globe, Tv } from 'lucide-react';
+import { Heart, X, BookmarkPlus, Star, Clock, Globe } from 'lucide-react';
 import type { Movie, MovieActionType } from '../types';
 import { LANGUAGE_NAMES } from '../lib/tmdb';
 import { getPosterUrl } from '../lib/tmdb';
-import { getProviderInfo, hasStreamingAvailability } from '../lib/ottIntegration';
 
 interface MovieCardProps {
   movie: Movie;
@@ -279,9 +278,14 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
           />
         </div>
 
-        {/* Loading State */}
+        {/* Loading State with Swipr Logo */}
         {!thumbnailLoaded && (
-          <div className="absolute inset-0 bg-gray-900 animate-pulse flex items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-pink-900 to-rose-900 flex flex-col items-center justify-center gap-4">
+            <img
+              src="/swipr-logo.png"
+              alt="Swipr"
+              className="w-24 h-24 object-contain opacity-50 animate-pulse"
+            />
             <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
           </div>
         )}
@@ -356,43 +360,7 @@ export function MovieCard({ movie, onAction, active = true, stackIndex = 0 }: Mo
                 ))}
               </div>
 
-              {/* OTT Streaming Availability */}
-              {movie.watchProviders && hasStreamingAvailability(movie.watchProviders) && (
-                <div className="flex items-start gap-2 pt-2">
-                  <Tv className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-xs text-white/70 mb-1">Available on:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {movie.watchProviders.flatrate?.slice(0, 4).map(provider => {
-                        const info = getProviderInfo(provider.provider_id);
-                        return (
-                          <span
-                            key={provider.provider_id}
-                            className="text-xs px-2 py-1 bg-blue-500/20 text-blue-300 rounded flex items-center gap-1"
-                            title={info.name}
-                          >
-                            <span>{info.icon}</span>
-                            <span>{info.name}</span>
-                          </span>
-                        );
-                      })}
-                      {movie.watchProviders.flatrate && movie.watchProviders.flatrate.length > 4 && (
-                        <span className="text-xs px-2 py-1 bg-white/10 text-white/70 rounded">
-                          +{movie.watchProviders.flatrate.length - 4} more
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* No Streaming Availability */}
-              {movie.watchProviders && !hasStreamingAvailability(movie.watchProviders) && (
-                <div className="flex items-center gap-2 pt-2">
-                  <Tv className="h-4 w-4 text-white/50" />
-                  <p className="text-xs text-white/50">Not available for streaming</p>
-                </div>
-              )}
+              {/* OTT Streaming info removed from card - will be shown in Watchlist */}
 
               <div className="flex justify-between pt-4">
                 <button
