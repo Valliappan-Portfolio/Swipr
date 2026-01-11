@@ -31,6 +31,9 @@ const gradients = [
   'from-gray-900 via-teal-900 to-slate-900'
 ];
 
+// Dev-only email for accessing advanced features
+const DEV_EMAIL = 'vspvalliappan@gmail.com';
+
 function App() {
   const [showHomePage, setShowHomePage] = useState(() => {
     return !localStorage.getItem('hasSeenHomepage');
@@ -58,6 +61,9 @@ function App() {
   const [undoInProgress, setUndoInProgress] = useState(false);
   const [lastUndoMovie, setLastUndoMovie] = useState<Movie | null>(null);
   const [topRatedMovies, setTopRatedMovies] = useState<Movie[]>([]);
+
+  // Check if current user is dev
+  const isDevUser = email === DEV_EMAIL;
   const [isLoadingUser, setIsLoadingUser] = useState(false);
 
   useEffect(() => {
@@ -625,13 +631,16 @@ function App() {
               </div>
             )}
 
-            <button
-              onClick={() => setShowAlgorithmDemo(true)}
-              className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition flex items-center justify-center"
-              title="How It Works"
-            >
-              <Brain className="h-5 w-5 text-white" />
-            </button>
+            {/* Dev-only: Algorithm Demo */}
+            {isDevUser && (
+              <button
+                onClick={() => setShowAlgorithmDemo(true)}
+                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition flex items-center justify-center"
+                title="How It Works (Dev Only)"
+              >
+                <Brain className="h-5 w-5 text-white" />
+              </button>
+            )}
 
             <button
               onClick={() => setCurrentView('settings')}
