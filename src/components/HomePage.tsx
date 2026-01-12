@@ -14,70 +14,24 @@ export function HomePage({ onStart }: HomePageProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const controls = useAnimation();
 
-  // DESIGN TOGGLE: Change this number (1, 2, 3, or 4) to switch designs
-  const DESIGN_OPTION = 1; // 1=Netflix Dark, 2=Clean White, 3=Deep Ocean, 4=Sunset Warm
-
-  // Design configurations
-  const designs = {
-    1: {
-      // Netflix Dark
-      bgClass: 'bg-black',
-      heroText: 'text-white',
-      accentText: 'text-red-500',
-      hookText: 'text-gray-300',
-      ctaBg: 'bg-red-600 hover:bg-red-700',
-      ctaText: 'text-white',
-      cardBg: 'bg-zinc-900/80',
-      cardBorder: 'border-red-600/40',
-      featureDot1: 'from-red-600 to-red-700',
-      featureDot2: 'from-gray-600 to-gray-700',
-      featureDot3: 'from-red-500 to-orange-600',
-    },
-    2: {
-      // Clean White
-      bgClass: 'bg-white',
-      heroText: 'text-slate-900',
-      accentText: 'text-blue-600',
-      hookText: 'text-slate-600',
-      ctaBg: 'bg-slate-900 hover:bg-slate-800',
-      ctaText: 'text-white',
-      cardBg: 'bg-white shadow-xl',
-      cardBorder: 'border-slate-200',
-      featureDot1: 'from-blue-500 to-indigo-500',
-      featureDot2: 'from-slate-400 to-slate-500',
-      featureDot3: 'from-green-500 to-emerald-500',
-    },
-    3: {
-      // Deep Ocean
-      bgClass: 'bg-gradient-to-br from-slate-900 via-blue-950 to-teal-950',
-      heroText: 'text-white',
-      accentText: 'text-teal-400',
-      hookText: 'text-teal-200',
-      ctaBg: 'bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400',
-      ctaText: 'text-slate-900',
-      cardBg: 'bg-blue-950/50 backdrop-blur-md',
-      cardBorder: 'border-teal-500/30',
-      featureDot1: 'from-teal-400 to-cyan-400',
-      featureDot2: 'from-blue-400 to-blue-500',
-      featureDot3: 'from-emerald-400 to-teal-400',
-    },
-    4: {
-      // Sunset Warm
-      bgClass: 'bg-gradient-to-br from-purple-950 via-orange-950 to-pink-950',
-      heroText: 'text-white',
-      accentText: 'text-orange-400',
-      hookText: 'text-orange-200',
-      ctaBg: 'bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-400 hover:to-pink-400',
-      ctaText: 'text-white',
-      cardBg: 'bg-orange-950/50 backdrop-blur-md',
-      cardBorder: 'border-orange-500/30',
-      featureDot1: 'from-orange-500 to-pink-500',
-      featureDot2: 'from-purple-500 to-purple-600',
-      featureDot3: 'from-pink-500 to-rose-500',
-    },
+  // Cinematic Dark - Unique dark theme with magenta/purple accents
+  const design = {
+    bgClass: 'bg-gradient-to-br from-slate-950 via-slate-900 to-purple-950',
+    heroText: 'text-white',
+    accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-purple-400',
+    hookText: 'text-slate-300',
+    ctaBg: 'bg-gradient-to-r from-fuchsia-600 via-purple-600 to-violet-600 hover:from-fuchsia-500 hover:via-purple-500 hover:to-violet-500',
+    ctaText: 'text-white',
+    cardBg: 'bg-slate-900/70 backdrop-blur-xl',
+    cardBorder: 'border-purple-500/20',
+    cardHover: 'hover:border-purple-400/40 hover:shadow-xl hover:shadow-purple-500/10',
+    featureDot1: 'from-fuchsia-500 to-purple-600',
+    featureDot2: 'from-violet-500 to-indigo-600',
+    featureDot3: 'from-purple-500 to-pink-600',
+    spotlightGlow: 'bg-gradient-to-r from-fuchsia-600/20 via-purple-600/20 to-violet-600/20',
   };
 
-  const d = designs[DESIGN_OPTION as keyof typeof designs];
+  const d = design;
 
   useEffect(() => {
     const fetchTrending = async () => {
@@ -127,8 +81,7 @@ export function HomePage({ onStart }: HomePageProps) {
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         {/* Animated Background Shapes - More subtle, flowing */}
-        {DESIGN_OPTION !== 2 && ( // Skip background shapes for white theme
-          <div className="absolute inset-0 overflow-hidden opacity-40">
+        <div className="absolute inset-0 overflow-hidden opacity-30">
             {/* Horizontal flowing waves instead of circles */}
             <div className="absolute top-1/4 left-0 right-0 h-64">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent blur-2xl"
@@ -142,8 +95,7 @@ export function HomePage({ onStart }: HomePageProps) {
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/4 to-transparent blur-2xl"
                    style={{ animation: 'wave 10s ease-in-out infinite', animationDelay: '4s', transform: 'skewY(-4deg)' }}></div>
             </div>
-          </div>
-        )}
+        </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center">
           <motion.div
@@ -237,7 +189,7 @@ export function HomePage({ onStart }: HomePageProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className={`${d.cardBg} rounded-2xl p-8 border ${d.cardBorder} hover:scale-105 transition-transform`}
+            className={`${d.cardBg} rounded-2xl p-8 border ${d.cardBorder} ${d.cardHover} hover:scale-105 transition-all duration-300`}
           >
             <div className={`w-12 h-12 bg-gradient-to-br ${d.featureDot1} rounded-full mb-6`}></div>
             <h3 className={`text-2xl font-bold ${d.heroText} mb-3`}>
@@ -252,7 +204,7 @@ export function HomePage({ onStart }: HomePageProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className={`${d.cardBg} rounded-2xl p-8 border ${d.cardBorder} hover:scale-105 transition-transform`}
+            className={`${d.cardBg} rounded-2xl p-8 border ${d.cardBorder} ${d.cardHover} hover:scale-105 transition-all duration-300`}
           >
             <div className={`w-12 h-12 bg-gradient-to-br ${d.featureDot2} rounded-full mb-6`}></div>
             <h3 className={`text-2xl font-bold ${d.heroText} mb-3`}>
@@ -267,7 +219,7 @@ export function HomePage({ onStart }: HomePageProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className={`${d.cardBg} rounded-2xl p-8 border ${d.cardBorder} hover:scale-105 transition-transform`}
+            className={`${d.cardBg} rounded-2xl p-8 border ${d.cardBorder} ${d.cardHover} hover:scale-105 transition-all duration-300`}
           >
             <div className={`w-12 h-12 bg-gradient-to-br ${d.featureDot3} rounded-full mb-6`}></div>
             <h3 className={`text-2xl font-bold ${d.heroText} mb-3`}>
