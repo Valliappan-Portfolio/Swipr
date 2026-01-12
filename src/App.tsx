@@ -20,16 +20,8 @@ import { batchGetStreamingAvailability } from './lib/ottIntegration';
 import { getBatchTMDBRecommendations } from './lib/tmdb';
 import type { Movie, MovieActionType, UserPreferences, ViewType } from './types';
 
-const gradients = [
-  'from-slate-900 via-teal-900 to-slate-900',
-  'from-gray-900 via-indigo-900 to-slate-900',
-  'from-slate-900 via-emerald-900 to-gray-900',
-  'from-gray-900 via-cyan-900 to-slate-900',
-  'from-slate-900 via-blue-900 to-gray-900',
-  'from-gray-900 via-purple-900 to-slate-900',
-  'from-slate-900 via-green-900 to-gray-900',
-  'from-gray-900 via-teal-900 to-slate-900'
-];
+// Sky Blue light theme - consistent across entire app
+const APP_BACKGROUND = 'bg-sky-50';
 
 // Dev-only email for accessing advanced features
 const DEV_EMAIL = 'vspvalliappan@gmail.com';
@@ -43,7 +35,6 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [userProfile, setUserProfile] = useState<{ name: string; preferences: UserPreferences } | null>(null);
-  const [currentGradient, setCurrentGradient] = useState(0);
   const [currentView, setCurrentView] = useState<ViewType>('swipe');
   const [showSurpriseMe, setShowSurpriseMe] = useState(false);
   const [seenMovies, setSeenMovies] = useState<Set<number>>(new Set());
@@ -585,10 +576,10 @@ function App() {
   // Show loading spinner while fetching user data
   if (isLoadingUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-cyan-900 to-slate-900 flex items-center justify-center">
+      <div className={`min-h-screen ${APP_BACKGROUND} flex items-center justify-center`}>
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white text-lg">Loading your profile...</p>
+          <div className="w-16 h-16 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-700 text-lg">Loading your profile...</p>
         </div>
       </div>
     );
@@ -612,12 +603,12 @@ function App() {
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${gradients[currentGradient]} transition-colors duration-1000`}>
+    <div className={`min-h-screen ${APP_BACKGROUND}`}>
       <header className="app-header fixed top-0 left-0 right-0 z-30">
         <div className="max-w-screen-xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <SwipeLogo className="h-7 w-7" />
-            <h1 className="text-lg font-bold text-white">Swipr</h1>
+            <h1 className="text-lg font-bold text-slate-800">Swipr</h1>
           </div>
 
           <div className="flex items-center gap-3">

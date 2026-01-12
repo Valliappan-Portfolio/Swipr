@@ -13,7 +13,7 @@ export function HomePage({ onStart }: HomePageProps) {
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const controls = useAnimation();
-  const [selectedDesign, setSelectedDesign] = useState(1);
+  const [selectedDesign, setSelectedDesign] = useState(3); // Default to Sky Blue Flat
 
   // 4 Options: 2 colors (Mint + Blue), each with flat & radial gradient versions
   const designs: Record<number, any> = {
