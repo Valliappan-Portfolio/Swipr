@@ -14,6 +14,71 @@ export function HomePage({ onStart }: HomePageProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const controls = useAnimation();
 
+  // DESIGN TOGGLE: Change this number (1, 2, 3, or 4) to switch designs
+  const DESIGN_OPTION = 1; // 1=Netflix Dark, 2=Clean White, 3=Deep Ocean, 4=Sunset Warm
+
+  // Design configurations
+  const designs = {
+    1: {
+      // Netflix Dark
+      bgClass: 'bg-black',
+      heroText: 'text-white',
+      accentText: 'text-red-500',
+      hookText: 'text-gray-300',
+      ctaBg: 'bg-red-600 hover:bg-red-700',
+      ctaText: 'text-white',
+      cardBg: 'bg-zinc-900/80',
+      cardBorder: 'border-red-600/40',
+      featureDot1: 'from-red-600 to-red-700',
+      featureDot2: 'from-gray-600 to-gray-700',
+      featureDot3: 'from-red-500 to-orange-600',
+    },
+    2: {
+      // Clean White
+      bgClass: 'bg-white',
+      heroText: 'text-slate-900',
+      accentText: 'text-blue-600',
+      hookText: 'text-slate-600',
+      ctaBg: 'bg-slate-900 hover:bg-slate-800',
+      ctaText: 'text-white',
+      cardBg: 'bg-white shadow-xl',
+      cardBorder: 'border-slate-200',
+      featureDot1: 'from-blue-500 to-indigo-500',
+      featureDot2: 'from-slate-400 to-slate-500',
+      featureDot3: 'from-green-500 to-emerald-500',
+    },
+    3: {
+      // Deep Ocean
+      bgClass: 'bg-gradient-to-br from-slate-900 via-blue-950 to-teal-950',
+      heroText: 'text-white',
+      accentText: 'text-teal-400',
+      hookText: 'text-teal-200',
+      ctaBg: 'bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400',
+      ctaText: 'text-slate-900',
+      cardBg: 'bg-blue-950/50 backdrop-blur-md',
+      cardBorder: 'border-teal-500/30',
+      featureDot1: 'from-teal-400 to-cyan-400',
+      featureDot2: 'from-blue-400 to-blue-500',
+      featureDot3: 'from-emerald-400 to-teal-400',
+    },
+    4: {
+      // Sunset Warm
+      bgClass: 'bg-gradient-to-br from-purple-950 via-orange-950 to-pink-950',
+      heroText: 'text-white',
+      accentText: 'text-orange-400',
+      hookText: 'text-orange-200',
+      ctaBg: 'bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-400 hover:to-pink-400',
+      ctaText: 'text-white',
+      cardBg: 'bg-orange-950/50 backdrop-blur-md',
+      cardBorder: 'border-orange-500/30',
+      featureDot1: 'from-orange-500 to-pink-500',
+      featureDot2: 'from-purple-500 to-purple-600',
+      featureDot3: 'from-pink-500 to-rose-500',
+    },
+  };
+
+  const d = designs[DESIGN_OPTION as keyof typeof designs];
+
   useEffect(() => {
     const fetchTrending = async () => {
       try {
@@ -58,15 +123,27 @@ export function HomePage({ onStart }: HomePageProps) {
   }, [loading, controls]);
 
   return (
-    <div className="homepage min-h-screen bg-gradient-to-br from-slate-900 via-cyan-900 to-blue-900 transition-all duration-1000">
+    <div className={`homepage min-h-screen ${d.bgClass} transition-all duration-1000`}>
       {/* Hero Section */}
       <div className="relative overflow-hidden">
-        {/* Animated Background Shapes */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-cyan-400/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-          <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-teal-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-        </div>
+        {/* Animated Background Shapes - More subtle, flowing */}
+        {DESIGN_OPTION !== 2 && ( // Skip background shapes for white theme
+          <div className="absolute inset-0 overflow-hidden opacity-40">
+            {/* Horizontal flowing waves instead of circles */}
+            <div className="absolute top-1/4 left-0 right-0 h-64">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent blur-2xl"
+                   style={{ animation: 'wave 8s ease-in-out infinite', transform: 'skewY(-6deg)' }}></div>
+            </div>
+            <div className="absolute top-1/2 left-0 right-0 h-48">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/3 to-transparent blur-3xl"
+                   style={{ animation: 'wave 12s ease-in-out infinite reverse', animationDelay: '2s', transform: 'skewY(3deg)' }}></div>
+            </div>
+            <div className="absolute top-3/4 left-0 right-0 h-56">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/4 to-transparent blur-2xl"
+                   style={{ animation: 'wave 10s ease-in-out infinite', animationDelay: '4s', transform: 'skewY(-4deg)' }}></div>
+            </div>
+          </div>
+        )}
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center">
           <motion.div
@@ -75,27 +152,27 @@ export function HomePage({ onStart }: HomePageProps) {
             transition={{ duration: 0.6 }}
           >
             {/* Hook */}
-            <p className="text-base sm:text-lg text-cyan-200 mb-6 max-w-2xl mx-auto font-medium">
-              Tired of endless scrolling through Netflix? Wasting hours deciding what to watch?
+            <p className={`text-base sm:text-lg ${d.hookText} mb-6 max-w-2xl mx-auto font-medium`}>
+              Overwhelmed by choices on Netflix? Spending hours deciding what to watch?
             </p>
 
-            <h1 className="text-5xl sm:text-7xl font-bold text-white mb-6 leading-tight">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-300">
+            <h1 className={`text-5xl sm:text-7xl font-bold ${d.heroText} mb-6 leading-tight`}>
+              <span className={`${d.accentText}`}>
                 Swipr
               </span>
               <br />
               Tinder for Movies
             </h1>
 
-            <p className="text-lg sm:text-xl text-white/90 mb-10 max-w-2xl mx-auto leading-relaxed">
+            <p className={`text-lg sm:text-xl ${d.heroText} opacity-90 mb-10 max-w-2xl mx-auto leading-relaxed`}>
               Swipe right to save, left to pass. Get personalized picks from <strong>Netflix, Prime, Disney+</strong> and more.
               <br className="hidden sm:block" />
-              <span className="text-cyan-200">English, Korean, Spanish, German</span> – all in one place.
+              <span className={d.accentText}>English, Korean, Spanish, German</span> – all in one place.
             </p>
 
             <button
               onClick={onStart}
-              className="inline-flex items-center gap-2 px-10 py-5 text-xl font-bold text-slate-900 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full hover:from-cyan-300 hover:to-blue-300 transition transform hover:scale-105 shadow-2xl"
+              className={`inline-flex items-center gap-2 px-10 py-5 text-xl font-bold ${d.ctaText} ${d.ctaBg} rounded-full transition transform hover:scale-105 shadow-2xl`}
             >
               Start Swiping Now
               <ArrowRight className="h-6 w-6" />
@@ -152,7 +229,7 @@ export function HomePage({ onStart }: HomePageProps) {
 
       {/* Features Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <h2 className="text-3xl font-bold text-white text-center mb-12">
+        <h2 className={`text-3xl font-bold ${d.heroText} text-center mb-12`}>
           How It Works
         </h2>
         <div className="grid md:grid-cols-3 gap-8">
@@ -160,13 +237,13 @@ export function HomePage({ onStart }: HomePageProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-cyan-400/30 hover:border-cyan-400/50 transition"
+            className={`${d.cardBg} rounded-2xl p-8 border ${d.cardBorder} hover:scale-105 transition-transform`}
           >
-            <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-400 rounded-full mb-6"></div>
-            <h3 className="text-2xl font-bold text-white mb-3">
+            <div className={`w-12 h-12 bg-gradient-to-br ${d.featureDot1} rounded-full mb-6`}></div>
+            <h3 className={`text-2xl font-bold ${d.heroText} mb-3`}>
               Swipe Right
             </h3>
-            <p className="text-white/80 leading-relaxed">
+            <p className={`${d.heroText} opacity-80 leading-relaxed`}>
               Love it? Swipe right. It learns your taste and recommends similar content.
             </p>
           </motion.div>
@@ -175,13 +252,13 @@ export function HomePage({ onStart }: HomePageProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-cyan-400/30 hover:border-cyan-400/50 transition"
+            className={`${d.cardBg} rounded-2xl p-8 border ${d.cardBorder} hover:scale-105 transition-transform`}
           >
-            <div className="w-12 h-12 bg-gradient-to-br from-slate-400 to-gray-400 rounded-full mb-6"></div>
-            <h3 className="text-2xl font-bold text-white mb-3">
+            <div className={`w-12 h-12 bg-gradient-to-br ${d.featureDot2} rounded-full mb-6`}></div>
+            <h3 className={`text-2xl font-bold ${d.heroText} mb-3`}>
               Swipe Left
             </h3>
-            <p className="text-white/80 leading-relaxed">
+            <p className={`${d.heroText} opacity-80 leading-relaxed`}>
               Not interested? Swipe left to pass. The algorithm learns what you don't like.
             </p>
           </motion.div>
@@ -190,13 +267,13 @@ export function HomePage({ onStart }: HomePageProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-cyan-400/30 hover:border-cyan-400/50 transition"
+            className={`${d.cardBg} rounded-2xl p-8 border ${d.cardBorder} hover:scale-105 transition-transform`}
           >
-            <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-400 rounded-full mb-6"></div>
-            <h3 className="text-2xl font-bold text-white mb-3">
+            <div className={`w-12 h-12 bg-gradient-to-br ${d.featureDot3} rounded-full mb-6`}></div>
+            <h3 className={`text-2xl font-bold ${d.heroText} mb-3`}>
               Swipe Up
             </h3>
-            <p className="text-white/80 leading-relaxed">
+            <p className={`${d.heroText} opacity-80 leading-relaxed`}>
               Want to watch later? Swipe up to add directly to your watchlist.
             </p>
           </motion.div>
@@ -209,17 +286,17 @@ export function HomePage({ onStart }: HomePageProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.7 }}
-          className="bg-gradient-to-br from-cyan-900/50 to-blue-900/50 backdrop-blur-md rounded-3xl p-12 border border-cyan-400/30"
+          className={`${d.cardBg} rounded-3xl p-12 border ${d.cardBorder}`}
         >
-          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
-            Stop Wasting Time Scrolling
+          <h2 className={`text-4xl sm:text-5xl font-bold ${d.heroText} mb-6`}>
+            Turn Browsing into Binge-Watching
           </h2>
-          <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
-            Find your next favorite movie in 30 seconds, not 30 minutes.
+          <p className={`text-xl ${d.heroText} opacity-90 mb-10 max-w-2xl mx-auto`}>
+            Find your next favorite in 30 seconds, not 30 minutes.
           </p>
           <button
             onClick={onStart}
-            className="inline-flex items-center gap-3 px-12 py-6 text-xl font-bold text-slate-900 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full hover:from-cyan-300 hover:to-blue-300 transition transform hover:scale-105 shadow-2xl"
+            className={`inline-flex items-center gap-3 px-12 py-6 text-xl font-bold ${d.ctaText} ${d.ctaBg} rounded-full transition transform hover:scale-105 shadow-2xl`}
           >
             Start Swiping
             <ArrowRight className="h-6 w-6" />
