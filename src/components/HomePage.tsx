@@ -58,39 +58,55 @@ export function HomePage({ onStart }: HomePageProps) {
   }, [loading, controls]);
 
   return (
-    <div className="homepage min-h-screen bg-gradient-to-br from-slate-900 via-teal-900 to-slate-900 transition-all duration-1000">
+    <div className="homepage min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 transition-all duration-1000">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxIDAgNiAyLjY5IDYgNnMtMi42OSA2LTYgNi02LTIuNjktNi02IDIuNjktNiA2LTZ6IiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvZz48L3N2Zz4=')] opacity-20"></div>
+        {/* Animated Background Shapes */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-pink-300/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-purple-300/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-4xl sm:text-6xl font-bold text-white mb-6">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400">
-                Swipr
+            {/* Logo/Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full mb-6 border border-white/30">
+              <Sparkles className="h-4 w-4 text-yellow-300" />
+              <span className="text-sm font-semibold text-white">Discover Movies You'll Love</span>
+            </div>
+
+            <h1 className="text-5xl sm:text-7xl font-bold text-white mb-6 leading-tight">
+              Swipe. Watch.
+              <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-pink-200 to-purple-200">
+                Repeat.
               </span>
-              <br />
-              Your Perfect Movie
-              <br />
-              Is a Swipe Away
             </h1>
-            
-            <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
-              Discover your next binge-worthy entertainment with personalized recommendations across multiple languages.
+
+            <p className="text-lg sm:text-xl text-white/90 mb-4 max-w-2xl mx-auto leading-relaxed">
+              <strong>Tinder for Movies</strong> – Swipe right on movies you love, left on ones you don't.
+            </p>
+            <p className="text-base sm:text-lg text-white/80 mb-10 max-w-2xl mx-auto">
+              Get personalized recommendations from <strong>Netflix, Prime, Disney+</strong> and more.
+              <br className="hidden sm:block" />
+              English, Korean, Spanish, German content – all in one place.
             </p>
 
-            <button
-              onClick={onStart}
-              className="inline-flex items-center gap-2 px-8 py-4 text-lg font-semibold text-teal-900 bg-white rounded-full hover:bg-white/90 transition transform hover:scale-105"
-            >
-              Start Swiping Now
-              <ArrowRight className="h-5 w-5" />
-            </button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <button
+                onClick={onStart}
+                className="inline-flex items-center gap-2 px-8 py-4 text-lg font-bold text-purple-900 bg-white rounded-full hover:bg-white/90 transition transform hover:scale-105 shadow-2xl"
+              >
+                Start Swiping – It's Free
+                <ArrowRight className="h-5 w-5" />
+              </button>
+              <p className="text-sm text-white/70">No signup required • No credit card</p>
+            </div>
           </motion.div>
         </div>
       </div>
@@ -143,21 +159,22 @@ export function HomePage({ onStart }: HomePageProps) {
 
       {/* Features Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid md:grid-cols-2 gap-8">
+        <h2 className="text-3xl font-bold text-white text-center mb-12">
+          How It Works
+        </h2>
+        <div className="grid md:grid-cols-3 gap-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-white/10 backdrop-blur-sm rounded-xl p-6"
+            className="bg-white/15 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition"
           >
-            <div className="h-12 w-12 rounded-full bg-teal-500/20 flex items-center justify-center mb-4">
-              <Film className="h-6 w-6 text-teal-400" />
-            </div>
-            <h3 className="text-xl font-semibold text-white mb-2">
-              Curated Content
+            <div className="text-6xl mb-4">👉</div>
+            <h3 className="text-xl font-bold text-white mb-3">
+              1. Swipe Right
             </h3>
-            <p className="text-white/70">
-              Discover movies and shows tailored to your preferences across multiple languages.
+            <p className="text-white/80">
+              Love it? Swipe right or tap the heart. It gets added to your watchlist.
             </p>
           </motion.div>
 
@@ -165,37 +182,54 @@ export function HomePage({ onStart }: HomePageProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="bg-white/10 backdrop-blur-sm rounded-xl p-6"
+            className="bg-white/15 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition"
           >
-            <div className="h-12 w-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
-              <Sparkles className="h-6 w-6 text-emerald-400" />
-            </div>
-            <h3 className="text-xl font-semibold text-white mb-2">
-              Smart Recommendations
+            <div className="text-6xl mb-4">👈</div>
+            <h3 className="text-xl font-bold text-white mb-3">
+              2. Swipe Left
             </h3>
-            <p className="text-white/70">
-              Our algorithm learns from your swipes to suggest content you'll love.
+            <p className="text-white/80">
+              Not interested? Swipe left to pass. The app learns your taste.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="bg-white/15 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition"
+          >
+            <div className="text-6xl mb-4">🎬</div>
+            <h3 className="text-xl font-bold text-white mb-3">
+              3. Get Smarter Picks
+            </h3>
+            <p className="text-white/80">
+              The more you swipe, the better our recommendations become.
             </p>
           </motion.div>
         </div>
       </div>
 
       {/* CTA Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.7 }}
+          className="bg-white/10 backdrop-blur-md rounded-3xl p-12 border border-white/20"
         >
-          <h2 className="text-3xl font-bold text-white mb-8">
-            Ready to Find Your Next Favorite?
+          <h2 className="text-4xl font-bold text-white mb-4">
+            Stop Scrolling. Start Swiping.
           </h2>
+          <p className="text-lg text-white/80 mb-8 max-w-2xl mx-auto">
+            Join users discovering their next favorite movie in seconds, not hours.
+          </p>
           <button
             onClick={onStart}
-            className="inline-flex items-center gap-2 px-8 py-4 text-lg font-semibold text-white bg-teal-600 rounded-full hover:bg-teal-500 transition transform hover:scale-105"
+            className="inline-flex items-center gap-2 px-10 py-5 text-xl font-bold text-purple-900 bg-white rounded-full hover:bg-white/90 transition transform hover:scale-105 shadow-2xl"
           >
-            Get Started
-            <ArrowRight className="h-5 w-5" />
+            Try Swipr Now – Free Forever
+            <ArrowRight className="h-6 w-6" />
           </button>
         </motion.div>
       </div>
