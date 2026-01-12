@@ -13,72 +13,77 @@ export function HomePage({ onStart }: HomePageProps) {
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const controls = useAnimation();
+  const [selectedDesign, setSelectedDesign] = useState(1);
 
-  // Fresh warm and neutral designs - NO blue/purple/pink family
-  const designs = {
+  // Fresh LIGHT designs - NO purple/pink, mostly light themes
+  const designs: Record<number, any> = {
     1: {
-      // Ember Red - Dark with red/crimson accents (cinematic)
-      bgClass: 'bg-gradient-to-br from-zinc-950 via-stone-900 to-zinc-950',
-      heroText: 'text-white',
-      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-rose-400',
-      hookText: 'text-stone-300',
-      ctaBg: 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500',
+      // Sky Blue Light - Light background with sky blue accents
+      bgClass: 'bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50',
+      heroText: 'text-slate-900',
+      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-cyan-600',
+      hookText: 'text-slate-600',
+      ctaBg: 'bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600',
       ctaText: 'text-white font-bold',
-      cardBg: 'bg-zinc-900/70 backdrop-blur-xl',
-      cardBorder: 'border-red-500/20',
-      cardHover: 'hover:border-red-400/40 hover:shadow-xl hover:shadow-red-500/10',
-      featureDot1: 'from-red-500 to-rose-600',
-      featureDot2: 'from-rose-500 to-red-600',
-      featureDot3: 'from-orange-500 to-red-600',
+      cardBg: 'bg-white/80 backdrop-blur-xl shadow-lg',
+      cardBorder: 'border-sky-200',
+      cardHover: 'hover:border-sky-400 hover:shadow-2xl hover:shadow-sky-200/50',
+      featureDot1: 'from-sky-400 to-cyan-500',
+      featureDot2: 'from-cyan-400 to-blue-500',
+      featureDot3: 'from-blue-400 to-sky-500',
+      waveColor: 'via-sky-200/20',
     },
     2: {
-      // Golden Hour - Dark with gold/yellow accents
-      bgClass: 'bg-gradient-to-br from-neutral-950 via-amber-950 to-neutral-950',
-      heroText: 'text-white',
-      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-400',
-      hookText: 'text-amber-100',
-      ctaBg: 'bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500',
-      ctaText: 'text-neutral-900 font-bold',
-      cardBg: 'bg-neutral-900/70 backdrop-blur-xl',
-      cardBorder: 'border-yellow-500/20',
-      cardHover: 'hover:border-yellow-400/40 hover:shadow-xl hover:shadow-yellow-500/10',
-      featureDot1: 'from-yellow-500 to-amber-600',
-      featureDot2: 'from-amber-500 to-orange-600',
-      featureDot3: 'from-orange-500 to-yellow-600',
+      // Coral Sunset Light - Warm coral/peach light theme
+      bgClass: 'bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50',
+      heroText: 'text-slate-900',
+      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-600',
+      hookText: 'text-slate-600',
+      ctaBg: 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600',
+      ctaText: 'text-white font-bold',
+      cardBg: 'bg-white/80 backdrop-blur-xl shadow-lg',
+      cardBorder: 'border-orange-200',
+      cardHover: 'hover:border-orange-400 hover:shadow-2xl hover:shadow-orange-200/50',
+      featureDot1: 'from-orange-400 to-amber-500',
+      featureDot2: 'from-amber-400 to-yellow-500',
+      featureDot3: 'from-yellow-400 to-orange-500',
+      waveColor: 'via-orange-200/20',
     },
     3: {
-      // Mint Fresh - Dark with mint/green accents
-      bgClass: 'bg-gradient-to-br from-zinc-950 via-emerald-950/30 to-zinc-950',
-      heroText: 'text-white',
-      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-400',
-      hookText: 'text-emerald-100',
-      ctaBg: 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500',
-      ctaText: 'text-zinc-900 font-bold',
-      cardBg: 'bg-zinc-900/70 backdrop-blur-xl',
-      cardBorder: 'border-emerald-500/20',
-      cardHover: 'hover:border-emerald-400/40 hover:shadow-xl hover:shadow-emerald-500/10',
-      featureDot1: 'from-emerald-500 to-green-600',
-      featureDot2: 'from-green-500 to-emerald-600',
-      featureDot3: 'from-lime-500 to-emerald-600',
+      // Mint Cream Light - Fresh mint/sage green light
+      bgClass: 'bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50',
+      heroText: 'text-slate-900',
+      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600',
+      hookText: 'text-slate-600',
+      ctaBg: 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600',
+      ctaText: 'text-white font-bold',
+      cardBg: 'bg-white/80 backdrop-blur-xl shadow-lg',
+      cardBorder: 'border-emerald-200',
+      cardHover: 'hover:border-emerald-400 hover:shadow-2xl hover:shadow-emerald-200/50',
+      featureDot1: 'from-emerald-400 to-teal-500',
+      featureDot2: 'from-teal-400 to-green-500',
+      featureDot3: 'from-green-400 to-emerald-500',
+      waveColor: 'via-emerald-200/20',
     },
     4: {
-      // Monochrome Elite - Pure black & white (minimal)
-      bgClass: 'bg-black',
-      heroText: 'text-white',
-      accentText: 'text-white font-extrabold',
-      hookText: 'text-gray-400',
-      ctaBg: 'bg-white hover:bg-gray-200',
-      ctaText: 'text-black font-bold',
-      cardBg: 'bg-zinc-900/80 backdrop-blur-sm',
-      cardBorder: 'border-zinc-700',
-      cardHover: 'hover:border-zinc-500 hover:shadow-xl hover:shadow-white/5',
-      featureDot1: 'from-gray-400 to-gray-600',
-      featureDot2: 'from-zinc-400 to-zinc-600',
-      featureDot3: 'from-slate-400 to-slate-600',
+      // Rose Gold Light - Sophisticated rose/gold light theme
+      bgClass: 'bg-gradient-to-br from-rose-50 via-pink-50 to-orange-50',
+      heroText: 'text-slate-900',
+      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-orange-600',
+      hookText: 'text-slate-600',
+      ctaBg: 'bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600',
+      ctaText: 'text-white font-bold',
+      cardBg: 'bg-white/80 backdrop-blur-xl shadow-lg',
+      cardBorder: 'border-rose-200',
+      cardHover: 'hover:border-rose-400 hover:shadow-2xl hover:shadow-rose-200/50',
+      featureDot1: 'from-rose-400 to-pink-500',
+      featureDot2: 'from-pink-400 to-orange-500',
+      featureDot3: 'from-orange-400 to-rose-500',
+      waveColor: 'via-rose-200/20',
     },
   };
 
-  const d = designs[1]; // Using Ember Red as default
+  const d = designs[selectedDesign];
 
   useEffect(() => {
     const fetchTrending = async () => {
@@ -125,21 +130,38 @@ export function HomePage({ onStart }: HomePageProps) {
 
   return (
     <div className={`homepage min-h-screen ${d.bgClass} transition-all duration-1000`}>
+      {/* Design Toggle - Fixed at top */}
+      <div className="fixed top-4 right-4 z-50 flex gap-2 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg">
+        {[1, 2, 3, 4].map((num) => (
+          <button
+            key={num}
+            onClick={() => setSelectedDesign(num)}
+            className={`w-10 h-10 rounded-full font-bold transition-all ${
+              selectedDesign === num
+                ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg scale-110'
+                : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+            }`}
+          >
+            {num}
+          </button>
+        ))}
+      </div>
+
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         {/* Animated Background Shapes - More subtle, flowing */}
-        <div className="absolute inset-0 overflow-hidden opacity-30">
+        <div className="absolute inset-0 overflow-hidden opacity-40">
             {/* Horizontal flowing waves instead of circles */}
             <div className="absolute top-1/4 left-0 right-0 h-64">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent blur-2xl"
+              <div className={`absolute inset-0 bg-gradient-to-r from-transparent ${d.waveColor} to-transparent blur-2xl`}
                    style={{ animation: 'wave 8s ease-in-out infinite', transform: 'skewY(-6deg)' }}></div>
             </div>
             <div className="absolute top-1/2 left-0 right-0 h-48">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/3 to-transparent blur-3xl"
+              <div className={`absolute inset-0 bg-gradient-to-r from-transparent ${d.waveColor} to-transparent blur-3xl`}
                    style={{ animation: 'wave 12s ease-in-out infinite reverse', animationDelay: '2s', transform: 'skewY(3deg)' }}></div>
             </div>
             <div className="absolute top-3/4 left-0 right-0 h-56">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/4 to-transparent blur-2xl"
+              <div className={`absolute inset-0 bg-gradient-to-r from-transparent ${d.waveColor} to-transparent blur-2xl`}
                    style={{ animation: 'wave 10s ease-in-out infinite', animationDelay: '4s', transform: 'skewY(-4deg)' }}></div>
             </div>
         </div>
