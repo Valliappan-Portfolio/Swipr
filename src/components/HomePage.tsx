@@ -15,42 +15,42 @@ export function HomePage({ onStart }: HomePageProps) {
   const controls = useAnimation();
   const [selectedDesign, setSelectedDesign] = useState(1);
 
-  // Fresh LIGHT designs - NO purple/pink, mostly light themes
+  // Final 4 LIGHT designs - Keep #3 (Mint), add 3 fresh modern alternatives
   const designs: Record<number, any> = {
     1: {
-      // Sky Blue Light - Light background with sky blue accents
-      bgClass: 'bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50',
+      // Lavender Dreams - Soft lavender/lilac (modern, not bold purple)
+      bgClass: 'bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50',
       heroText: 'text-slate-900',
-      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-cyan-600',
+      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-600',
       hookText: 'text-slate-600',
-      ctaBg: 'bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600',
+      ctaBg: 'bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600',
       ctaText: 'text-white font-bold',
       cardBg: 'bg-white/80 backdrop-blur-xl shadow-lg',
-      cardBorder: 'border-sky-200',
-      cardHover: 'hover:border-sky-400 hover:shadow-2xl hover:shadow-sky-200/50',
-      featureDot1: 'from-sky-400 to-cyan-500',
-      featureDot2: 'from-cyan-400 to-blue-500',
-      featureDot3: 'from-blue-400 to-sky-500',
-      waveColor: 'via-sky-200/20',
+      cardBorder: 'border-violet-200',
+      cardHover: 'hover:border-violet-400 hover:shadow-2xl hover:shadow-violet-200/50',
+      featureDot1: 'from-violet-400 to-purple-500',
+      featureDot2: 'from-purple-400 to-fuchsia-500',
+      featureDot3: 'from-fuchsia-400 to-violet-500',
+      waveColor: 'via-violet-200/20',
     },
     2: {
-      // Coral Sunset Light - Warm coral/peach light theme
-      bgClass: 'bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50',
+      // Peach Sorbet - Warm peach/coral modern
+      bgClass: 'bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50',
       heroText: 'text-slate-900',
-      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-600',
+      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-rose-600',
       hookText: 'text-slate-600',
-      ctaBg: 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600',
+      ctaBg: 'bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600',
       ctaText: 'text-white font-bold',
-      cardBg: 'bg-white/80 backdrop-blur-xl shadow-lg',
+      cardBg: 'bg-white/90 backdrop-blur-xl shadow-lg',
       cardBorder: 'border-orange-200',
       cardHover: 'hover:border-orange-400 hover:shadow-2xl hover:shadow-orange-200/50',
-      featureDot1: 'from-orange-400 to-amber-500',
-      featureDot2: 'from-amber-400 to-yellow-500',
-      featureDot3: 'from-yellow-400 to-orange-500',
+      featureDot1: 'from-orange-400 to-rose-500',
+      featureDot2: 'from-rose-400 to-amber-500',
+      featureDot3: 'from-amber-400 to-orange-500',
       waveColor: 'via-orange-200/20',
     },
     3: {
-      // Mint Cream Light - Fresh mint/sage green light
+      // Mint Cream - KEEP THIS (your favorite)
       bgClass: 'bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50',
       heroText: 'text-slate-900',
       accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600',
@@ -66,20 +66,20 @@ export function HomePage({ onStart }: HomePageProps) {
       waveColor: 'via-emerald-200/20',
     },
     4: {
-      // Rose Gold Light - Sophisticated rose/gold light theme
-      bgClass: 'bg-gradient-to-br from-rose-50 via-pink-50 to-orange-50',
+      // Honey Glow - Warm honey/gold/yellow modern
+      bgClass: 'bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50',
       heroText: 'text-slate-900',
-      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-orange-600',
-      hookText: 'text-slate-600',
-      ctaBg: 'bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600',
+      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600',
+      hookText: 'text-slate-700',
+      ctaBg: 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600',
       ctaText: 'text-white font-bold',
-      cardBg: 'bg-white/80 backdrop-blur-xl shadow-lg',
-      cardBorder: 'border-rose-200',
-      cardHover: 'hover:border-rose-400 hover:shadow-2xl hover:shadow-rose-200/50',
-      featureDot1: 'from-rose-400 to-pink-500',
-      featureDot2: 'from-pink-400 to-orange-500',
-      featureDot3: 'from-orange-400 to-rose-500',
-      waveColor: 'via-rose-200/20',
+      cardBg: 'bg-white/85 backdrop-blur-xl shadow-lg',
+      cardBorder: 'border-yellow-200',
+      cardHover: 'hover:border-yellow-400 hover:shadow-2xl hover:shadow-yellow-200/50',
+      featureDot1: 'from-yellow-400 to-amber-500',
+      featureDot2: 'from-amber-400 to-orange-500',
+      featureDot3: 'from-orange-400 to-yellow-500',
+      waveColor: 'via-yellow-200/20',
     },
   };
 
