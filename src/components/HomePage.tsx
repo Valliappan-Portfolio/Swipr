@@ -14,24 +14,88 @@ export function HomePage({ onStart }: HomePageProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const controls = useAnimation();
 
-  // Cinematic Dark - Unique dark theme with magenta/purple accents
-  const design = {
-    bgClass: 'bg-gradient-to-br from-slate-950 via-slate-900 to-purple-950',
-    heroText: 'text-white',
-    accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-purple-400',
-    hookText: 'text-slate-300',
-    ctaBg: 'bg-gradient-to-r from-fuchsia-600 via-purple-600 to-violet-600 hover:from-fuchsia-500 hover:via-purple-500 hover:to-violet-500',
-    ctaText: 'text-white',
-    cardBg: 'bg-slate-900/70 backdrop-blur-xl',
-    cardBorder: 'border-purple-500/20',
-    cardHover: 'hover:border-purple-400/40 hover:shadow-xl hover:shadow-purple-500/10',
-    featureDot1: 'from-fuchsia-500 to-purple-600',
-    featureDot2: 'from-violet-500 to-indigo-600',
-    featureDot3: 'from-purple-500 to-pink-600',
-    spotlightGlow: 'bg-gradient-to-r from-fuchsia-600/20 via-purple-600/20 to-violet-600/20',
+  // DESIGN TOGGLE: Change this number (1-5) to switch designs
+  const DESIGN_OPTION = 1;
+
+  const designs = {
+    1: {
+      // Midnight Teal - Dark with teal/cyan accents
+      bgClass: 'bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950',
+      heroText: 'text-white',
+      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-teal-400',
+      hookText: 'text-slate-300',
+      ctaBg: 'bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500',
+      ctaText: 'text-slate-900 font-bold',
+      cardBg: 'bg-slate-900/60 backdrop-blur-xl',
+      cardBorder: 'border-teal-500/20',
+      cardHover: 'hover:border-teal-400/40 hover:shadow-xl hover:shadow-teal-500/10',
+      featureDot1: 'from-cyan-500 to-teal-600',
+      featureDot2: 'from-teal-500 to-emerald-600',
+      featureDot3: 'from-blue-500 to-cyan-600',
+    },
+    2: {
+      // Carbon Black - Pure dark with minimal color
+      bgClass: 'bg-black',
+      heroText: 'text-white',
+      accentText: 'text-white',
+      hookText: 'text-gray-400',
+      ctaBg: 'bg-white hover:bg-gray-100',
+      ctaText: 'text-black font-bold',
+      cardBg: 'bg-zinc-900/90 backdrop-blur-sm',
+      cardBorder: 'border-zinc-700',
+      cardHover: 'hover:border-zinc-500 hover:shadow-xl hover:shadow-white/5',
+      featureDot1: 'from-gray-500 to-gray-600',
+      featureDot2: 'from-zinc-500 to-zinc-600',
+      featureDot3: 'from-slate-500 to-slate-600',
+    },
+    3: {
+      // Forest Green - Dark with green/lime accents
+      bgClass: 'bg-gradient-to-br from-zinc-950 via-emerald-950 to-zinc-950',
+      heroText: 'text-white',
+      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-lime-400 to-emerald-400',
+      hookText: 'text-emerald-100',
+      ctaBg: 'bg-gradient-to-r from-lime-600 to-emerald-600 hover:from-lime-500 hover:to-emerald-500',
+      ctaText: 'text-zinc-900 font-bold',
+      cardBg: 'bg-zinc-900/70 backdrop-blur-xl',
+      cardBorder: 'border-emerald-500/20',
+      cardHover: 'hover:border-emerald-400/40 hover:shadow-xl hover:shadow-emerald-500/10',
+      featureDot1: 'from-lime-500 to-emerald-600',
+      featureDot2: 'from-emerald-500 to-green-600',
+      featureDot3: 'from-green-500 to-teal-600',
+    },
+    4: {
+      // Electric Blue - Dark with bright blue accents
+      bgClass: 'bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950',
+      heroText: 'text-white',
+      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-sky-400',
+      hookText: 'text-blue-200',
+      ctaBg: 'bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-500 hover:to-sky-500',
+      ctaText: 'text-white font-bold',
+      cardBg: 'bg-gray-900/70 backdrop-blur-xl',
+      cardBorder: 'border-blue-500/20',
+      cardHover: 'hover:border-blue-400/40 hover:shadow-xl hover:shadow-blue-500/10',
+      featureDot1: 'from-blue-500 to-indigo-600',
+      featureDot2: 'from-sky-500 to-blue-600',
+      featureDot3: 'from-indigo-500 to-blue-600',
+    },
+    5: {
+      // Amber Glow - Dark with warm amber/orange accents
+      bgClass: 'bg-gradient-to-br from-neutral-950 via-stone-900 to-neutral-950',
+      heroText: 'text-white',
+      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400',
+      hookText: 'text-amber-100',
+      ctaBg: 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500',
+      ctaText: 'text-neutral-900 font-bold',
+      cardBg: 'bg-neutral-900/70 backdrop-blur-xl',
+      cardBorder: 'border-amber-500/20',
+      cardHover: 'hover:border-amber-400/40 hover:shadow-xl hover:shadow-amber-500/10',
+      featureDot1: 'from-amber-500 to-orange-600',
+      featureDot2: 'from-orange-500 to-amber-600',
+      featureDot3: 'from-yellow-500 to-orange-600',
+    },
   };
 
-  const d = design;
+  const d = designs[DESIGN_OPTION as keyof typeof designs];
 
   useEffect(() => {
     const fetchTrending = async () => {
