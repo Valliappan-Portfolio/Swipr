@@ -58,55 +58,48 @@ export function HomePage({ onStart }: HomePageProps) {
   }, [loading, controls]);
 
   return (
-    <div className="homepage min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 transition-all duration-1000">
+    <div className="homepage min-h-screen bg-gradient-to-br from-slate-900 via-cyan-900 to-blue-900 transition-all duration-1000">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         {/* Animated Background Shapes */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-pink-300/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-          <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-purple-300/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-20 left-10 w-72 h-72 bg-cyan-400/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-teal-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12 text-center">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            {/* Logo/Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full mb-6 border border-white/30">
-              <Sparkles className="h-4 w-4 text-yellow-300" />
-              <span className="text-sm font-semibold text-white">Discover Movies You'll Love</span>
-            </div>
+            {/* Hook */}
+            <p className="text-base sm:text-lg text-cyan-200 mb-6 max-w-2xl mx-auto font-medium">
+              Tired of endless scrolling through Netflix? Wasting hours deciding what to watch?
+            </p>
 
             <h1 className="text-5xl sm:text-7xl font-bold text-white mb-6 leading-tight">
-              Swipe. Watch.
-              <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-pink-200 to-purple-200">
-                Repeat.
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-300">
+                Swipr
               </span>
+              <br />
+              Tinder for Movies
             </h1>
 
-            <p className="text-lg sm:text-xl text-white/90 mb-4 max-w-2xl mx-auto leading-relaxed">
-              <strong>Tinder for Movies</strong> – Swipe right on movies you love, left on ones you don't.
-            </p>
-            <p className="text-base sm:text-lg text-white/80 mb-10 max-w-2xl mx-auto">
-              Get personalized recommendations from <strong>Netflix, Prime, Disney+</strong> and more.
+            <p className="text-lg sm:text-xl text-white/90 mb-10 max-w-2xl mx-auto leading-relaxed">
+              Swipe right to save, left to pass. Get personalized picks from <strong>Netflix, Prime, Disney+</strong> and more.
               <br className="hidden sm:block" />
-              English, Korean, Spanish, German content – all in one place.
+              <span className="text-cyan-200">English, Korean, Spanish, German</span> – all in one place.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <button
-                onClick={onStart}
-                className="inline-flex items-center gap-2 px-8 py-4 text-lg font-bold text-purple-900 bg-white rounded-full hover:bg-white/90 transition transform hover:scale-105 shadow-2xl"
-              >
-                Start Swiping – It's Free
-                <ArrowRight className="h-5 w-5" />
-              </button>
-              <p className="text-sm text-white/70">No signup required • No credit card</p>
-            </div>
+            <button
+              onClick={onStart}
+              className="inline-flex items-center gap-2 px-10 py-5 text-xl font-bold text-slate-900 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full hover:from-cyan-300 hover:to-blue-300 transition transform hover:scale-105 shadow-2xl"
+            >
+              Start Swiping Now
+              <ArrowRight className="h-6 w-6" />
+            </button>
           </motion.div>
         </div>
       </div>
@@ -167,14 +160,14 @@ export function HomePage({ onStart }: HomePageProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-white/15 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition"
+            className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-cyan-400/30 hover:border-cyan-400/50 transition"
           >
-            <div className="text-6xl mb-4">👉</div>
-            <h3 className="text-xl font-bold text-white mb-3">
-              1. Swipe Right
+            <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-400 rounded-full mb-6"></div>
+            <h3 className="text-2xl font-bold text-white mb-3">
+              Swipe Right
             </h3>
-            <p className="text-white/80">
-              Love it? Swipe right or tap the heart. It gets added to your watchlist.
+            <p className="text-white/80 leading-relaxed">
+              Love it? Swipe right. It learns your taste and recommends similar content.
             </p>
           </motion.div>
 
@@ -182,14 +175,14 @@ export function HomePage({ onStart }: HomePageProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="bg-white/15 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition"
+            className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-cyan-400/30 hover:border-cyan-400/50 transition"
           >
-            <div className="text-6xl mb-4">👈</div>
-            <h3 className="text-xl font-bold text-white mb-3">
-              2. Swipe Left
+            <div className="w-12 h-12 bg-gradient-to-br from-slate-400 to-gray-400 rounded-full mb-6"></div>
+            <h3 className="text-2xl font-bold text-white mb-3">
+              Swipe Left
             </h3>
-            <p className="text-white/80">
-              Not interested? Swipe left to pass. The app learns your taste.
+            <p className="text-white/80 leading-relaxed">
+              Not interested? Swipe left to pass. The algorithm learns what you don't like.
             </p>
           </motion.div>
 
@@ -197,14 +190,14 @@ export function HomePage({ onStart }: HomePageProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="bg-white/15 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition"
+            className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-cyan-400/30 hover:border-cyan-400/50 transition"
           >
-            <div className="text-6xl mb-4">🎬</div>
-            <h3 className="text-xl font-bold text-white mb-3">
-              3. Get Smarter Picks
+            <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-400 rounded-full mb-6"></div>
+            <h3 className="text-2xl font-bold text-white mb-3">
+              Swipe Up
             </h3>
-            <p className="text-white/80">
-              The more you swipe, the better our recommendations become.
+            <p className="text-white/80 leading-relaxed">
+              Want to watch later? Swipe up to add directly to your watchlist.
             </p>
           </motion.div>
         </div>
@@ -216,19 +209,19 @@ export function HomePage({ onStart }: HomePageProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.7 }}
-          className="bg-white/10 backdrop-blur-md rounded-3xl p-12 border border-white/20"
+          className="bg-gradient-to-br from-cyan-900/50 to-blue-900/50 backdrop-blur-md rounded-3xl p-12 border border-cyan-400/30"
         >
-          <h2 className="text-4xl font-bold text-white mb-4">
-            Stop Scrolling. Start Swiping.
+          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
+            Stop Wasting Time Scrolling
           </h2>
-          <p className="text-lg text-white/80 mb-8 max-w-2xl mx-auto">
-            Join users discovering their next favorite movie in seconds, not hours.
+          <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
+            Find your next favorite movie in 30 seconds, not 30 minutes.
           </p>
           <button
             onClick={onStart}
-            className="inline-flex items-center gap-2 px-10 py-5 text-xl font-bold text-purple-900 bg-white rounded-full hover:bg-white/90 transition transform hover:scale-105 shadow-2xl"
+            className="inline-flex items-center gap-3 px-12 py-6 text-xl font-bold text-slate-900 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full hover:from-cyan-300 hover:to-blue-300 transition transform hover:scale-105 shadow-2xl"
           >
-            Try Swipr Now – Free Forever
+            Start Swiping
             <ArrowRight className="h-6 w-6" />
           </button>
         </motion.div>
