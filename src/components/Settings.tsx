@@ -95,12 +95,12 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 settings-view">
+    <div className="min-h-screen bg-sky-50 settings-view">
       <div className="max-w-2xl mx-auto p-4">
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={onBack}
-            className="flex items-center gap-2 text-white hover:text-white/80 transition"
+            className="flex items-center gap-2 text-slate-700 hover:text-slate-900 transition"
           >
             <ArrowLeft className="h-5 w-5" />
             Back to Movies
@@ -109,7 +109,7 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowFeedback(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-500/20 text-teal-300 hover:bg-teal-500/30 transition"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-100 text-sky-700 hover:bg-sky-200 transition border border-sky-200"
             >
               <MessageSquare className="h-4 w-4" />
               <span>Feedback</span>
@@ -118,7 +118,7 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
             {onSignOut && (
               <button
                 onClick={onSignOut}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500/20 text-orange-300 hover:bg-orange-500/30 transition"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-100 text-orange-700 hover:bg-orange-200 transition border border-orange-200"
               >
                 <LogOut className="h-4 w-4" />
                 <span>Sign Out</span>
@@ -127,7 +127,7 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
 
             <button
               onClick={() => setShowResetConfirm(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/20 text-red-300 hover:bg-red-500/30 transition"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition border border-red-200"
             >
               <RotateCcw className="h-4 w-4" />
               Reset
@@ -135,18 +135,18 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
           </div>
         </div>
 
-        <div className="bg-black/20 backdrop-blur-lg rounded-xl p-8">
-          <h1 className="text-2xl font-bold text-white mb-8">Settings</h1>
+        <div className="bg-white rounded-xl p-8 border border-sky-200 shadow-lg">
+          <h1 className="text-2xl font-bold text-slate-900 mb-8">Settings</h1>
 
           <div className="space-y-8">
             {/* Name Section */}
             <section>
-              <h2 className="text-lg font-semibold text-white mb-4">Your Name</h2>
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">Your Name</h2>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg bg-white/10 text-white border border-white/20 focus:outline-none focus:border-white/40"
+                className="w-full px-4 py-2 rounded-lg bg-sky-50 text-slate-900 border border-sky-200 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
               />
             </section>
 
@@ -154,9 +154,9 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
             <section>
               <div className="flex items-center gap-2 mb-4">
                 <Sparkles className="h-5 w-5 text-yellow-400" />
-                <h2 className="text-lg font-semibold text-white">What's Your Vibe?</h2>
+                <h2 className="text-lg font-semibold text-slate-900">What's Your Vibe?</h2>
               </div>
-              <p className="text-white/60 text-sm mb-4">Select all that apply</p>
+              <p className="text-slate-900/60 text-sm mb-4">Select all that apply</p>
               <div className="grid grid-cols-2 gap-4">
                 {[
                   { id: 'chill', emoji: '😌', title: 'Chill & Light', desc: 'Comedy, Romance' },
@@ -169,13 +169,13 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
                     onClick={() => handleVibeToggle(option.id as Vibe)}
                     className={`p-4 rounded-xl border-2 transition-all ${
                       selectedVibes.includes(option.id as Vibe)
-                        ? 'bg-white/20 border-white'
-                        : 'bg-white/10 border-white/20 hover:bg-white/15'
+                        ? 'bg-gradient-to-br from-sky-100 to-cyan-100 border-sky-500'
+                        : 'bg-sky-50 border-sky-200 hover:bg-sky-100'
                     }`}
                   >
                     <div className="text-3xl mb-2">{option.emoji}</div>
-                    <div className="text-white font-semibold text-sm">{option.title}</div>
-                    <div className="text-white/60 text-xs mt-1">{option.desc}</div>
+                    <div className="text-slate-900 font-semibold text-sm">{option.title}</div>
+                    <div className="text-slate-900/60 text-xs mt-1">{option.desc}</div>
                   </button>
                 ))}
               </div>
@@ -183,14 +183,14 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
 
             {/* Content Type Section */}
             <section>
-              <h2 className="text-lg font-semibold text-white mb-4">Content Type</h2>
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">Content Type</h2>
               <div className="grid grid-cols-3 gap-4">
                 <button
                   onClick={() => handleContentTypeSelect('movies')}
                   className={`p-4 rounded-lg text-left transition ${
                     preferences.contentType === 'movies'
-                      ? 'bg-white/30 text-white'
-                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                      ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white'
+                      : 'bg-sky-50 text-slate-700 hover:bg-sky-100 border border-sky-200'
                   }`}
                 >
                   <Film className="inline-block mr-2 h-5 w-5" />
@@ -200,8 +200,8 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
                   onClick={() => handleContentTypeSelect('series')}
                   className={`p-4 rounded-lg text-left transition ${
                     preferences.contentType === 'series'
-                      ? 'bg-white/30 text-white'
-                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                      ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white'
+                      : 'bg-sky-50 text-slate-700 hover:bg-sky-100 border border-sky-200'
                   }`}
                 >
                   <Tv className="inline-block mr-2 h-5 w-5" />
@@ -211,8 +211,8 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
                   onClick={() => handleContentTypeSelect('both')}
                   className={`p-4 rounded-lg text-left transition ${
                     preferences.contentType === 'both'
-                      ? 'bg-white/30 text-white'
-                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                      ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white'
+                      : 'bg-sky-50 text-slate-700 hover:bg-sky-100 border border-sky-200'
                   }`}
                 >
                   <div className="flex items-center">
@@ -225,14 +225,14 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
 
               {(preferences.contentType === 'series' || preferences.contentType === 'both') && (
                 <div className="mt-4">
-                  <h3 className="text-md font-semibold text-white mb-4">Series Length Preference</h3>
+                  <h3 className="text-md font-semibold text-slate-900 mb-4">Series Length Preference</h3>
                   <div className="grid grid-cols-3 gap-4">
                     <button
                       onClick={() => handleSeriesTypeSelect('mini')}
                       className={`p-4 rounded-lg text-left transition ${
                         preferences.seriesType === 'mini'
-                          ? 'bg-white/30 text-white'
-                          : 'bg-white/10 text-white/70 hover:bg-white/20'
+                          ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white'
+                          : 'bg-sky-50 text-slate-700 hover:bg-sky-100 border border-sky-200'
                       }`}
                     >
                       <Clock className="inline-block mr-2 h-5 w-5" />
@@ -242,8 +242,8 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
                       onClick={() => handleSeriesTypeSelect('long')}
                       className={`p-4 rounded-lg text-left transition ${
                         preferences.seriesType === 'long'
-                          ? 'bg-white/30 text-white'
-                          : 'bg-white/10 text-white/70 hover:bg-white/20'
+                          ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white'
+                          : 'bg-sky-50 text-slate-700 hover:bg-sky-100 border border-sky-200'
                       }`}
                     >
                       <Tv className="inline-block mr-2 h-5 w-5" />
@@ -253,8 +253,8 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
                       onClick={() => handleSeriesTypeSelect('both')}
                       className={`p-4 rounded-lg text-left transition ${
                         preferences.seriesType === 'both'
-                          ? 'bg-white/30 text-white'
-                          : 'bg-white/10 text-white/70 hover:bg-white/20'
+                          ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white'
+                          : 'bg-sky-50 text-slate-700 hover:bg-sky-100 border border-sky-200'
                       }`}
                     >
                       <div className="flex items-center">
@@ -272,7 +272,7 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
             <section>
               <div className="flex items-center gap-2 mb-4">
                 <Calendar className="h-5 w-5 text-purple-400" />
-                <h2 className="text-lg font-semibold text-white">Prefer Old or New?</h2>
+                <h2 className="text-lg font-semibold text-slate-900">Prefer Old or New?</h2>
               </div>
               <div className="space-y-3">
                 {[
@@ -288,14 +288,14 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
                       onClick={() => handleEraSelect(option.id as any)}
                       className={`w-full p-4 rounded-xl border-2 transition-all flex items-center gap-4 ${
                         isSelected
-                          ? 'bg-white/20 border-white'
-                          : 'bg-white/10 border-white/20 hover:bg-white/15'
+                          ? 'bg-gradient-to-br from-sky-100 to-cyan-100 border-sky-500'
+                          : 'bg-sky-50 border-sky-200 hover:bg-sky-100'
                       }`}
                     >
                       <div className="text-3xl">{option.emoji}</div>
                       <div className="flex-1 text-left">
-                        <div className="text-white font-semibold">{option.title}</div>
-                        <div className="text-white/60 text-sm">{option.desc}</div>
+                        <div className="text-slate-900 font-semibold">{option.title}</div>
+                        <div className="text-slate-900/60 text-sm">{option.desc}</div>
                       </div>
                     </button>
                   );
@@ -307,9 +307,9 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
             <section>
               <div className="flex items-center gap-2 mb-4">
                 <Globe className="h-5 w-5 text-blue-400" />
-                <h2 className="text-lg font-semibold text-white">Content Languages</h2>
+                <h2 className="text-lg font-semibold text-slate-900">Content Languages</h2>
               </div>
-              <p className="text-white/60 text-sm mb-4">
+              <p className="text-slate-900/60 text-sm mb-4">
                 Select all languages you want to see. International hits like Dark, Money Heist, and Squid Game will appear!
               </p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -331,12 +331,12 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
                       className={`p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
                         isSelected
                           ? 'bg-blue-500/20 border-blue-400'
-                          : 'bg-white/10 border-white/20 hover:bg-white/15'
+                          : 'bg-sky-50 border-sky-200 hover:bg-sky-100'
                       }`}
                     >
                       <div className="text-2xl">{lang.flag}</div>
                       <div className="text-left flex-1">
-                        <div className={`text-sm font-semibold ${isSelected ? 'text-blue-200' : 'text-white/90'}`}>
+                        <div className={`text-sm font-semibold ${isSelected ? 'text-blue-200' : 'text-slate-900/90'}`}>
                           {lang.name}
                         </div>
                       </div>
@@ -347,14 +347,14 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
                   );
                 })}
               </div>
-              <p className="text-white/50 text-xs mt-3">
+              <p className="text-slate-900/50 text-xs mt-3">
                 💡 Tip: Select multiple languages to discover highly-rated international content. Quality shows will be prioritized regardless of language!
               </p>
             </section>
 
             <button
               onClick={() => onSave(name, preferences)}
-              className="w-full px-6 py-3 rounded-lg bg-white text-purple-900 font-semibold hover:bg-white/90 transition"
+              className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-sky-500 to-cyan-500 text-white font-semibold hover:bg-white/90 transition"
             >
               Save Changes
             </button>
@@ -370,20 +370,20 @@ export function Settings({ initialName, initialPreferences, onSave, onBack, onSi
       {showResetConfirm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-gray-900 rounded-xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold text-white mb-4">Reset Preferences?</h3>
-            <p className="text-white/80 mb-6">
+            <h3 className="text-xl font-bold text-slate-900 mb-4">Reset Preferences?</h3>
+            <p className="text-slate-900/80 mb-6">
               This will clear all your preferences and take you back to the onboarding screen. This action cannot be undone.
             </p>
             <div className="flex gap-4">
               <button
                 onClick={() => setShowResetConfirm(false)}
-                className="flex-1 px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition"
+                className="flex-1 px-4 py-2 rounded-lg bg-sky-100 text-slate-900 hover:bg-sky-200 border border-sky-200 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleReset}
-                className="flex-1 px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition"
+                className="flex-1 px-4 py-2 rounded-lg bg-red-500 text-slate-900 hover:bg-red-600 transition"
               >
                 Reset
               </button>

@@ -48,12 +48,8 @@ export function Onboarding({ onComplete, initialName = '' }: OnboardingProps) {
     onComplete(initialName || 'User', preferences);
   };
 
-  const gradients = [
-    'from-purple-900 via-pink-900 to-rose-900',
-    'from-blue-900 via-cyan-900 to-teal-900',
-    'from-indigo-900 via-purple-900 to-pink-900',
-    'from-emerald-900 via-teal-900 to-cyan-900'
-  ];
+  // Sky Blue theme - consistent with rest of app
+  const APP_BACKGROUND = 'bg-sky-50';
 
   const renderStep = () => {
     switch (step) {
@@ -62,16 +58,16 @@ export function Onboarding({ onComplete, initialName = '' }: OnboardingProps) {
           <div className="space-y-8 animate-fadeIn">
             <div className="text-center">
               <Sparkles className="h-16 w-16 text-yellow-400 mx-auto mb-4 animate-pulse" />
-              <h2 className="text-3xl font-bold text-white mb-2">
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">
                 Welcome{initialName ? `, ${initialName}` : ''}!
               </h2>
-              <p className="text-white/70">Let's find your perfect movie match</p>
+              <p className="text-slate-600">Let's find your perfect movie match</p>
             </div>
 
             <div className="space-y-6">
               <div>
-                <p className="text-white font-semibold mb-3 text-center">What's your vibe?</p>
-                <p className="text-white/60 text-sm text-center mb-4">Select all that apply</p>
+                <p className="text-slate-900 font-semibold mb-3 text-center">What's your vibe?</p>
+                <p className="text-slate-500 text-sm text-center mb-4">Select all that apply</p>
               </div>
             </div>
 
@@ -93,13 +89,13 @@ export function Onboarding({ onComplete, initialName = '' }: OnboardingProps) {
                   }}
                   className={`p-6 rounded-2xl border-2 transition-all transform hover:scale-105 ${
                     vibes.includes(option.id as Vibe)
-                      ? 'bg-white/20 border-white shadow-lg shadow-white/20'
-                      : 'bg-white/5 border-white/20 hover:bg-white/10'
+                      ? 'bg-gradient-to-br from-sky-100 to-cyan-100 border-sky-500 shadow-lg'
+                      : 'bg-sky-50 border-sky-200 hover:bg-sky-100'
                   }`}
                 >
                   <div className="text-4xl mb-2">{option.emoji}</div>
-                  <div className="text-white font-semibold mb-1">{option.title}</div>
-                  <div className="text-white/60 text-xs">{option.desc}</div>
+                  <div className="text-slate-900 font-semibold mb-1">{option.title}</div>
+                  <div className="text-slate-500 text-xs">{option.desc}</div>
                 </button>
               ))}
             </div>
@@ -111,8 +107,8 @@ export function Onboarding({ onComplete, initialName = '' }: OnboardingProps) {
           <div className="space-y-8 animate-fadeIn">
             <div className="text-center">
               <Zap className="h-16 w-16 text-blue-400 mx-auto mb-4 animate-pulse" />
-              <h2 className="text-3xl font-bold text-white mb-2">How much time do you have?</h2>
-              <p className="text-white/70">We'll match the perfect length</p>
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">How much time do you have?</h2>
+              <p className="text-slate-600">We'll match the perfect length</p>
             </div>
 
             <div className="space-y-4">
@@ -126,16 +122,16 @@ export function Onboarding({ onComplete, initialName = '' }: OnboardingProps) {
                   onClick={() => setTimeCommitment(option.id as TimeCommitment)}
                   className={`w-full p-6 rounded-2xl border-2 transition-all transform hover:scale-102 flex items-center gap-4 ${
                     timeCommitment === option.id
-                      ? 'bg-white/20 border-white shadow-lg shadow-white/20'
-                      : 'bg-white/5 border-white/20 hover:bg-white/10'
+                      ? 'bg-gradient-to-br from-sky-100 to-cyan-100 border-sky-500 shadow-lg'
+                      : 'bg-sky-50 border-sky-200 hover:bg-sky-100'
                   }`}
                 >
                   <div className="text-4xl">{option.emoji}</div>
                   <div className="flex-1 text-left">
-                    <div className="text-white font-semibold">{option.title}</div>
-                    <div className="text-white/60 text-sm">{option.desc}</div>
+                    <div className="text-slate-900 font-semibold">{option.title}</div>
+                    <div className="text-slate-500 text-sm">{option.desc}</div>
                   </div>
-                  <div className="text-white/80 font-mono text-sm bg-white/10 px-3 py-1 rounded-full">
+                  <div className="text-slate-700 font-mono text-sm bg-sky-200 px-3 py-1 rounded-full">
                     {option.time}
                   </div>
                 </button>
@@ -149,8 +145,8 @@ export function Onboarding({ onComplete, initialName = '' }: OnboardingProps) {
           <div className="space-y-8 animate-fadeIn">
             <div className="text-center">
               <Calendar className="h-16 w-16 text-purple-400 mx-auto mb-4 animate-pulse" />
-              <h2 className="text-3xl font-bold text-white mb-2">Prefer old or new?</h2>
-              <p className="text-white/70">When were your favorites made?</p>
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">Prefer old or new?</h2>
+              <p className="text-slate-600">When were your favorites made?</p>
             </div>
 
             <div className="space-y-4">
@@ -164,16 +160,16 @@ export function Onboarding({ onComplete, initialName = '' }: OnboardingProps) {
                   onClick={() => setEra(option.id as any)}
                   className={`w-full p-6 rounded-2xl border-2 transition-all flex items-center gap-4 ${
                     era === option.id
-                      ? 'bg-white/20 border-white shadow-lg shadow-white/20'
-                      : 'bg-white/5 border-white/20 hover:bg-white/10'
+                      ? 'bg-gradient-to-br from-sky-100 to-cyan-100 border-sky-500 shadow-lg'
+                      : 'bg-sky-50 border-sky-200 hover:bg-sky-100'
                   }`}
                 >
                   <div className="text-4xl">{option.emoji}</div>
                   <div className="flex-1 text-left">
-                    <div className="text-white font-semibold">{option.title}</div>
-                    <div className="text-white/60 text-sm">{option.desc}</div>
+                    <div className="text-slate-900 font-semibold">{option.title}</div>
+                    <div className="text-slate-500 text-sm">{option.desc}</div>
                   </div>
-                  <div className="text-white/80 font-mono text-sm bg-white/10 px-3 py-1 rounded-full">
+                  <div className="text-slate-700 font-mono text-sm bg-sky-200 px-3 py-1 rounded-full">
                     {option.range}
                   </div>
                 </button>
@@ -188,24 +184,24 @@ export function Onboarding({ onComplete, initialName = '' }: OnboardingProps) {
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${gradients[step]} transition-all duration-1000 flex items-center justify-center p-4`}>
+    <div className={`min-h-screen ${APP_BACKGROUND} flex items-center justify-center p-4`}>
       <div className="w-full max-w-2xl">
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-white/60 text-sm">Step {step + 1} of 3</span>
-            <span className="text-white/60 text-sm">{Math.round(((step + 1) / 3) * 100)}%</span>
+            <span className="text-slate-600 text-sm">Step {step + 1} of 3</span>
+            <span className="text-slate-600 text-sm">{Math.round(((step + 1) / 3) * 100)}%</span>
           </div>
-          <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+          <div className="h-2 bg-sky-200 rounded-full overflow-hidden">
             <div
-              className="h-full bg-white rounded-full transition-all duration-500"
+              className="h-full bg-gradient-to-r from-sky-500 to-cyan-500 rounded-full transition-all duration-500"
               style={{ width: `${((step + 1) / 3) * 100}%` }}
             />
           </div>
         </div>
 
         {/* Main Card */}
-        <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
+        <div className="bg-white rounded-3xl p-8 border border-sky-200 shadow-xl">
           {renderStep()}
 
           {/* Navigation */}
@@ -213,7 +209,7 @@ export function Onboarding({ onComplete, initialName = '' }: OnboardingProps) {
             {step > 0 && (
               <button
                 onClick={() => setStep(step - 1)}
-                className="px-6 py-3 rounded-xl bg-white/10 text-white hover:bg-white/20 transition font-semibold"
+                className="px-6 py-3 rounded-xl bg-sky-100 text-slate-900 hover:bg-sky-200 transition font-semibold border border-sky-200"
               >
                 Back
               </button>
@@ -222,14 +218,14 @@ export function Onboarding({ onComplete, initialName = '' }: OnboardingProps) {
             {step < 2 ? (
               <button
                 onClick={() => setStep(step + 1)}
-                className="flex-1 px-6 py-3 rounded-xl bg-white text-gray-900 hover:bg-white/90 transition font-semibold"
+                className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 text-white hover:from-sky-600 hover:to-cyan-600 transition font-semibold shadow-lg"
               >
                 Continue
               </button>
             ) : (
               <button
                 onClick={handleComplete}
-                className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 transition font-semibold shadow-lg"
+                className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 text-white hover:from-sky-600 hover:to-cyan-600 transition font-semibold shadow-lg"
               >
                 Start Swiping! 🎬
               </button>

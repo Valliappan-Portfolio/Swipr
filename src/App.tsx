@@ -373,8 +373,6 @@ function App() {
       next.add(currentMovie.id);
       return next;
     });
-    
-    setCurrentGradient(prev => (prev + 1) % gradients.length);
 
     // Save action to database for recommendations with metadata
     if (userId && preferenceId) {
@@ -614,9 +612,9 @@ function App() {
           <div className="flex items-center gap-3">
             {/* Swipe Counter Badge - More Visible */}
             {smartRecommendationEngine.getSessionStats().totalSwipes > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-gradient-to-r from-purple-500/30 to-pink-500/30 backdrop-blur-sm border-2 border-white/40 shadow-lg">
-                <Film className="h-4 w-4 text-white" />
-                <span className="text-sm font-bold text-white">
+              <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-sky-100 backdrop-blur-sm border-2 border-sky-300 shadow-lg">
+                <Film className="h-4 w-4 text-sky-700" />
+                <span className="text-sm font-bold text-sky-900">
                   {smartRecommendationEngine.getSessionStats().totalSwipes}
                 </span>
               </div>
@@ -626,19 +624,19 @@ function App() {
             {isDevUser && (
               <button
                 onClick={() => setShowAlgorithmDemo(true)}
-                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition flex items-center justify-center"
+                className="p-2 rounded-full bg-sky-100 hover:bg-sky-200 transition flex items-center justify-center border border-sky-200"
                 title="How It Works (Dev Only)"
               >
-                <Brain className="h-5 w-5 text-white" />
+                <Brain className="h-5 w-5 text-sky-700" />
               </button>
             )}
 
             <button
               onClick={() => setCurrentView('settings')}
-              className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition flex items-center justify-center"
+              className="p-2 rounded-full bg-sky-100 hover:bg-sky-200 transition flex items-center justify-center border border-sky-200"
               title="Settings"
             >
-              <SettingsIcon className="h-5 w-5 text-white" />
+              <SettingsIcon className="h-5 w-5 text-sky-700" />
             </button>
           </div>
         </div>
@@ -717,8 +715,8 @@ function App() {
             }}
             className={`flex items-center gap-1 px-3 py-2 rounded-full transition ${
               currentView === 'swipe' && !showSurpriseMe
-                ? 'bg-white/20 text-white'
-                : 'text-white/60 hover:text-white'
+                ? 'bg-sky-100 text-sky-900 border border-sky-300'
+                : 'text-slate-700 hover:text-slate-900'
             }`}
           >
             <Film className="h-5 w-5" />
@@ -731,8 +729,8 @@ function App() {
             }}
             className={`flex items-center gap-1 px-3 py-2 rounded-full transition ${
               currentView === 'list'
-                ? 'bg-white/20 text-white'
-                : 'text-white/60 hover:text-white'
+                ? 'bg-sky-100 text-sky-900 border border-sky-300'
+                : 'text-slate-700 hover:text-slate-900'
             }`}
           >
             <ListVideo className="h-5 w-5" />
@@ -742,8 +740,8 @@ function App() {
             onClick={() => setShowSurpriseMe(true)}
             className={`flex items-center gap-1 px-3 py-2 rounded-full transition ${
               showSurpriseMe
-                ? 'bg-white/20 text-white'
-                : 'text-white/60 hover:text-white hover:bg-white/10'
+                ? 'bg-sky-100 text-sky-900 border border-sky-300'
+                : 'text-slate-700 hover:text-slate-900 hover:bg-sky-50'
             }`}
           >
             <BarChart3 className="h-5 w-5" />
