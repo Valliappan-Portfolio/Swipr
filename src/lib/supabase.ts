@@ -438,6 +438,27 @@ export async function getSeenMovies(userId: string): Promise<Set<number>> {
   }
 }
 
+// Get all movie IDs from anonymous_actions (the source of truth for what user has seen)
+export async function getUserActionedMovies(userId: string): Promise<Set<number>> {
+  try {
+    console.log('🔍 Fetching all actioned movies for user:', userId);
+    const { data, error } = await supabase
+      .from('anonymous_actions')
+      .select('movie_id')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+
+    const movieIds = new Set(data?.map(row => row.movie_id) || []);
+    console.log(`✅ Found ${movieIds.size} unique movies user has already seen/actioned`);
+
+    return movieIds;
+  } catch (error) {
+    console.error('❌ Error getting user actioned movies:', error);
+    return new Set();
+  }
+}
+
 export async function removeSeenMovie(userId: string, movieId: number) {
   try {
     const { error} = await supabase

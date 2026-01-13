@@ -15,7 +15,7 @@ import { AlgorithmDemo } from './components/AlgorithmDemo';
 import { getMovies, getTVSeries, getTopRatedMovies, getTopRatedSeries } from './lib/tmdb';
 import { intelligentRecommendationEngine } from './lib/intelligentRecommendations';
 import { smartRecommendationEngine } from './lib/smartRecommendations';
-import { saveUserPreferences, saveMovieAction, getStoredPreferenceId, storePreferenceId, getStoredUserId, storeUserId, getStoredUsername, storeUsername, getStoredEmail, storeEmail, getUserPreferences, addToWatchlist as addToSupabaseWatchlist, getWatchlist as getSupabaseWatchlist, removeFromWatchlist, markMovieAsSeen, getSeenMovies, removeSeenMovie, getUserLikedMovies } from './lib/supabase';
+import { saveUserPreferences, saveMovieAction, getStoredPreferenceId, storePreferenceId, getStoredUserId, storeUserId, getStoredUsername, storeUsername, getStoredEmail, storeEmail, getUserPreferences, addToWatchlist as addToSupabaseWatchlist, getWatchlist as getSupabaseWatchlist, removeFromWatchlist, markMovieAsSeen, getSeenMovies, removeSeenMovie, getUserLikedMovies, getUserActionedMovies } from './lib/supabase';
 import { batchGetStreamingAvailability } from './lib/ottIntegration';
 import { getBatchTMDBRecommendations } from './lib/tmdb';
 import type { Movie, MovieActionType, UserPreferences, ViewType } from './types';
@@ -86,10 +86,12 @@ function App() {
           console.log('✅ Loaded returning user preferences:', { name: existingData.name, preferenceId: existingData.preferenceId });
         }
 
-        // Load seen movies from Supabase (instead of localStorage)
-        const seenMoviesFromDB = await getSeenMovies(storedUserId);
-        setSeenMovies(seenMoviesFromDB);
-        console.log('✅ Loaded seen movies from Supabase:', seenMoviesFromDB.size, 'movies');
+        // Load ALL actioned movies from Supabase (the source of truth - prevents duplicates!)
+        const actionedMovies = await getUserActionedMovies(storedUserId);
+        setSeenMovies(actionedMovies);
+        console.log('✅ Loaded actioned movies from anonymous_actions table:', actionedMovies.size, 'unique movies');
+
+        // This ensures returning users NEVER see movies they've already liked/passed/watched
 
         // Load watchlist from Supabase
         const watchlist = await getSupabaseWatchlist(storedUserId);
