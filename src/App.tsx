@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Film, Settings as SettingsIcon, Share2, ListVideo, BarChart3, Brain } from 'lucide-react';
+import { Film, Settings as SettingsIcon, Share2, ListVideo, BarChart3, Brain, CreditCard } from 'lucide-react';
 import { MovieCard } from './components/MovieCard';
 import { HomePage } from './components/HomePage';
 import { Auth } from './components/Auth';
@@ -613,7 +613,7 @@ function App() {
             {/* Swipe Counter Badge - More Visible */}
             {smartRecommendationEngine.getSessionStats().totalSwipes > 0 && (
               <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-sky-100 backdrop-blur-sm border-2 border-sky-300 shadow-lg">
-                <Film className="h-4 w-4 text-sky-700" />
+                <CreditCard className="h-4 w-4 text-sky-700" />
                 <span className="text-sm font-bold text-sky-900">
                   {smartRecommendationEngine.getSessionStats().totalSwipes}
                 </span>

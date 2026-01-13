@@ -210,8 +210,8 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
     if (allProviders.length === 0) {
       return (
         <div className="mt-3 flex items-center gap-2">
-          <Play className="h-4 w-4 text-white/40" />
-          <span className="text-xs text-white/50">Not available on major streaming platforms</span>
+          <Play className="h-4 w-4 text-slate-400" />
+          <span className="text-xs text-slate-500">Not available on major streaming platforms</span>
         </div>
       );
     }
@@ -229,10 +229,10 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
     };
 
     return (
-      <div className="mt-3 border-t border-white/10 pt-3">
+      <div className="mt-3 border-t border-sky-200 pt-3">
         <div className="flex items-center gap-2 mb-2">
-          <Play className="h-4 w-4 text-white/60" />
-          <span className="text-sm font-medium text-white/80">Streaming on:</span>
+          <Play className="h-4 w-4 text-slate-600" />
+          <span className="text-sm font-medium text-slate-800">Streaming on:</span>
         </div>
         <div className="flex flex-wrap gap-2">
           {uniqueProviders.map(({ provider, region }) => (
@@ -242,7 +242,7 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
                 e.stopPropagation();
                 handleProviderClick(provider.provider_id, region);
               }}
-              className="group relative flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition border border-white/20"
+              className="group relative flex items-center gap-2 px-3 py-2 rounded-lg bg-white hover:bg-sky-50 transition border border-sky-300"
               title={`Watch on ${provider.provider_name}`}
             >
               <img
@@ -250,9 +250,9 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
                 alt={provider.provider_name}
                 className="w-5 h-5 rounded transition transform group-hover:scale-110"
               />
-              <span className="text-xs text-white/90">{provider.provider_name}</span>
+              <span className="text-xs text-slate-900">{provider.provider_name}</span>
               <span className="text-xs">{regionNames[region]}</span>
-              <ExternalLink className="h-3 w-3 text-white/60 group-hover:text-white transition" />
+              <ExternalLink className="h-3 w-3 text-slate-600 group-hover:text-slate-900 transition" />
             </button>
           ))}
         </div>
@@ -268,7 +268,7 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
       <div className="mt-4 space-y-3">
         {/* Runtime */}
         {details.runtime && (
-          <div className="flex items-center gap-2 text-sm text-white/80">
+          <div className="flex items-center gap-2 text-sm text-slate-800">
             <Clock className="h-4 w-4" />
             <span>{details.runtime} minutes</span>
           </div>
@@ -278,14 +278,14 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
         {details.cast.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <Users className="h-4 w-4 text-white/60" />
-              <span className="text-sm font-medium text-white/80">Cast</span>
+              <Users className="h-4 w-4 text-slate-600" />
+              <span className="text-sm font-medium text-slate-800">Cast</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {details.cast.map(actor => (
                 <span
                   key={actor.name}
-                  className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded-full"
+                  className="text-xs bg-white text-slate-700 px-2 py-1 rounded-full"
                 >
                   {actor.name}
                 </span>
@@ -298,14 +298,14 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
         {details.crew.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <Calendar className="h-4 w-4 text-white/60" />
-              <span className="text-sm font-medium text-white/80">Crew</span>
+              <Calendar className="h-4 w-4 text-slate-600" />
+              <span className="text-sm font-medium text-slate-800">Crew</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {details.crew.map(person => (
                 <span
                   key={`${person.name}-${person.job}`}
-                  className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded-full"
+                  className="text-xs bg-white text-slate-700 px-2 py-1 rounded-full"
                 >
                   {person.name} ({person.job})
                 </span>
@@ -319,16 +319,16 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
   if (movies.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center px-6">
-        <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center mb-6">
-          <BookmarkPlus className="h-12 w-12 text-white/60" />
+        <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center mb-6">
+          <BookmarkPlus className="h-12 w-12 text-slate-600" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-3">Your Watchlist is Empty</h2>
-        <p className="text-white/70 mb-6 max-w-md">
+        <h2 className="text-2xl font-bold text-slate-900 mb-3">Your Watchlist is Empty</h2>
+        <p className="text-slate-700 mb-6 max-w-md">
           Swipe up ↑ on any movie while swiping to save it to your watchlist!
         </p>
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 max-w-sm border border-white/20">
-          <p className="text-sm text-white/80">
-            <strong className="text-white">Pro tip:</strong> Add movies you want to watch later, and we'll show you where to stream them!
+        <div className="bg-white backdrop-blur-sm rounded-xl p-4 max-w-sm border border-sky-300">
+          <p className="text-sm text-slate-800">
+            <strong className="text-slate-900">Pro tip:</strong> Add movies you want to watch later, and we'll show you where to stream them!
           </p>
         </div>
       </div>
@@ -342,7 +342,7 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
         return (
           <div
             key={`watchlist-${movie.id}-${movie.type}`}
-            className="bg-white/10 backdrop-blur-sm rounded-lg overflow-hidden cursor-pointer transition hover:bg-white/20 border border-white/10 hover:border-white/30"
+            className="bg-white backdrop-blur-sm rounded-lg overflow-hidden cursor-pointer transition hover:bg-sky-50 border border-sky-200 hover:border-sky-400"
             onClick={() => {
               setCollapsedMovies(prev => {
                 const newSet = new Set(prev);
@@ -362,24 +362,24 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
                 className="w-24 h-36 object-cover rounded-lg"
               />
               <div className="flex-1 ml-4">
-                <h3 className="text-lg font-semibold text-white">{movie.title}</h3>
+                <h3 className="text-lg font-semibold text-slate-900">{movie.title}</h3>
 
                 {/* Full description - show all by default, collapse on click */}
-                <p className={`text-sm text-white/80 mt-1 ${isCollapsed ? 'line-clamp-2' : ''}`}>
+                <p className={`text-sm text-slate-800 mt-1 ${isCollapsed ? 'line-clamp-2' : ''}`}>
                   {movie.overview || 'No description available.'}
                 </p>
 
                 <div className="flex items-center gap-3 mt-2">
-                  <span className="text-sm text-white/60 flex items-center gap-1">
+                  <span className="text-sm text-slate-600 flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
                     {new Date(movie.releaseDate).getFullYear()}
                   </span>
-                  <span className="text-sm text-white/60 flex items-center gap-1">
+                  <span className="text-sm text-slate-600 flex items-center gap-1">
                     <Star className="h-4 w-4 text-yellow-400" />
                     {movie.voteAverage.toFixed(1)}
                   </span>
                   {movie.genres && movie.genres.length > 0 && (
-                    <span className="text-sm text-white/60">
+                    <span className="text-sm text-slate-600">
                       {movie.genres.slice(0, 2).join(', ')}
                     </span>
                   )}
@@ -389,7 +389,7 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
                 {!isCollapsed && (
                   <>
                     {loadingDetails[movie.id] ? (
-                      <div className="mt-3 text-sm text-white/60">
+                      <div className="mt-3 text-sm text-slate-600">
                         Loading details...
                       </div>
                     ) : (
@@ -402,7 +402,7 @@ export function WatchlistView({ movies, onUpdate, onRemove }: WatchlistViewProps
                 {!isCollapsed && (
                   <>
                     {loadingProviders[movie.id] ? (
-                      <div className="mt-3 text-sm text-white/60">
+                      <div className="mt-3 text-sm text-slate-600">
                         Loading streaming info...
                       </div>
                     ) : (
