@@ -13,83 +13,24 @@ export function HomePage({ onStart }: HomePageProps) {
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const controls = useAnimation();
-  const [selectedDesign, setSelectedDesign] = useState(3); // Default to Sky Blue Flat
 
-  // 4 Options: 2 colors (Mint + Blue), each with flat & radial gradient versions
-  const designs: Record<number, any> = {
-    1: {
-      // Mint Cream - FLAT (no gradient)
-      bgClass: 'bg-emerald-50',
-      heroText: 'text-slate-900',
-      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600',
-      hookText: 'text-slate-600',
-      ctaBg: 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600',
-      ctaText: 'text-white font-bold',
-      cardBg: 'bg-white/80 backdrop-blur-xl shadow-lg',
-      cardBorder: 'border-emerald-200',
-      cardHover: 'hover:border-emerald-400 hover:shadow-2xl hover:shadow-emerald-200/50',
-      featureDot1: 'from-emerald-400 to-teal-500',
-      featureDot2: 'from-teal-400 to-green-500',
-      featureDot3: 'from-green-400 to-emerald-500',
-      waveColor: 'via-emerald-200/20',
-      hasRadialGradient: false,
-    },
-    2: {
-      // Mint Cream - RADIAL GRADIENT (subtle light spots)
-      bgClass: 'bg-emerald-50',
-      radialGradient: 'radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(20, 184, 166, 0.12) 0%, transparent 50%)',
-      heroText: 'text-slate-900',
-      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600',
-      hookText: 'text-slate-600',
-      ctaBg: 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600',
-      ctaText: 'text-white font-bold',
-      cardBg: 'bg-white/80 backdrop-blur-xl shadow-lg',
-      cardBorder: 'border-emerald-200',
-      cardHover: 'hover:border-emerald-400 hover:shadow-2xl hover:shadow-emerald-200/50',
-      featureDot1: 'from-emerald-400 to-teal-500',
-      featureDot2: 'from-teal-400 to-green-500',
-      featureDot3: 'from-green-400 to-emerald-500',
-      waveColor: 'via-emerald-200/20',
-      hasRadialGradient: true,
-    },
-    3: {
-      // Sky Blue - FLAT (no gradient)
-      bgClass: 'bg-sky-50',
-      heroText: 'text-slate-900',
-      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-cyan-600',
-      hookText: 'text-slate-600',
-      ctaBg: 'bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600',
-      ctaText: 'text-white font-bold',
-      cardBg: 'bg-white/80 backdrop-blur-xl shadow-lg',
-      cardBorder: 'border-sky-200',
-      cardHover: 'hover:border-sky-400 hover:shadow-2xl hover:shadow-sky-200/50',
-      featureDot1: 'from-sky-400 to-cyan-500',
-      featureDot2: 'from-cyan-400 to-blue-500',
-      featureDot3: 'from-blue-400 to-sky-500',
-      waveColor: 'via-sky-200/20',
-      hasRadialGradient: false,
-    },
-    4: {
-      // Sky Blue - RADIAL GRADIENT (subtle light spots)
-      bgClass: 'bg-sky-50',
-      radialGradient: 'radial-gradient(circle at 25% 35%, rgba(14, 165, 233, 0.15) 0%, transparent 50%), radial-gradient(circle at 75% 65%, rgba(6, 182, 212, 0.12) 0%, transparent 50%)',
-      heroText: 'text-slate-900',
-      accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-cyan-600',
-      hookText: 'text-slate-600',
-      ctaBg: 'bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600',
-      ctaText: 'text-white font-bold',
-      cardBg: 'bg-white/80 backdrop-blur-xl shadow-lg',
-      cardBorder: 'border-sky-200',
-      cardHover: 'hover:border-sky-400 hover:shadow-2xl hover:shadow-sky-200/50',
-      featureDot1: 'from-sky-400 to-cyan-500',
-      featureDot2: 'from-cyan-400 to-blue-500',
-      featureDot3: 'from-blue-400 to-sky-500',
-      waveColor: 'via-sky-200/20',
-      hasRadialGradient: true,
-    },
+  // Sky Blue theme design - finalized
+  const d = {
+    bgClass: 'bg-sky-50',
+    heroText: 'text-slate-900',
+    accentText: 'text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-cyan-600',
+    hookText: 'text-slate-600',
+    ctaBg: 'bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600',
+    ctaText: 'text-white font-bold',
+    cardBg: 'bg-white/80 backdrop-blur-xl shadow-lg',
+    cardBorder: 'border-sky-200',
+    cardHover: 'hover:border-sky-400 hover:shadow-2xl hover:shadow-sky-200/50',
+    featureDot1: 'from-sky-400 to-cyan-500',
+    featureDot2: 'from-cyan-400 to-blue-500',
+    featureDot3: 'from-blue-400 to-sky-500',
+    waveColor: 'via-sky-200/20',
+    hasRadialGradient: false,
   };
-
-  const d = designs[selectedDesign];
 
   useEffect(() => {
     const fetchTrending = async () => {
@@ -135,27 +76,7 @@ export function HomePage({ onStart }: HomePageProps) {
   }, [loading, controls]);
 
   return (
-    <div
-      className={`homepage min-h-screen ${d.bgClass} transition-all duration-1000`}
-      style={d.hasRadialGradient ? { backgroundImage: d.radialGradient } : undefined}
-    >
-      {/* Design Toggle - Fixed at top */}
-      <div className="fixed top-4 right-4 z-50 flex gap-2 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg">
-        {[1, 2, 3, 4].map((num) => (
-          <button
-            key={num}
-            onClick={() => setSelectedDesign(num)}
-            className={`w-10 h-10 rounded-full font-bold transition-all ${
-              selectedDesign === num
-                ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg scale-110'
-                : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-            }`}
-          >
-            {num}
-          </button>
-        ))}
-      </div>
-
+    <div className={`homepage min-h-screen ${d.bgClass}`}>
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         {/* Animated Background Shapes - More subtle, flowing */}
